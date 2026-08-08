@@ -52,6 +52,12 @@ export type PropPath =
  */
 export type FlagPath = 'bold' | 'italic' | 'underline'
 
+/** Which axis a block is centred on within its parent. */
+export type CenterAxis = 'x' | 'y' | 'both'
+
+/** What a scale command multiplies: the box, or the type inside it. */
+export type ScaleTarget = 'box' | 'font'
+
 /** Paths whose values can be shifted by a relative delta. */
 export type NumericPath = 'x' | 'y' | 'w' | 'h' | 'fontSize' | 'rotation'
 
@@ -106,6 +112,14 @@ export type DocCommand =
     }
   | { readonly op: 'move'; readonly id: string; readonly parent: string; readonly index: number }
   | { readonly op: 'remove'; readonly id: string }
+  /**
+   * Centring and scaling are single commands rather than pairs of `set`s
+   * because each writes two properties from one instruction. Split into pairs
+   * they would be two undo steps, and a voice command that lands halfway is
+   * worse than one that does not land at all.
+   */
+  | { readonly op: 'center'; readonly id: string; readonly axis: CenterAxis }
+  | { readonly op: 'scale'; readonly id: string; readonly factor: number; readonly of: ScaleTarget }
   | { readonly op: 'noop' }
 
 /**

@@ -33,6 +33,10 @@ export function lockKey(blockId: string, group: PropGroup): string {
 /** The key a command contends for, or null when it contends for nothing. */
 export function keyFor(cmd: Command): string | null {
   if (cmd.op === 'set' || cmd.op === 'nudge') return lockKey(cmd.id, GROUP[cmd.path])
+  // Centring writes x and y; scaling writes the box or the type. Both contend
+  // for the group they land in, exactly as the `set` they stand in for would.
+  if (cmd.op === 'center') return lockKey(cmd.id, 'geom')
+  if (cmd.op === 'scale') return lockKey(cmd.id, cmd.of === 'font' ? 'style' : 'geom')
   return null
 }
 

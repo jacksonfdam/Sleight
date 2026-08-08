@@ -162,6 +162,51 @@ export function reduce(doc: DocumentState, cmd: DocCommand): DocumentState {
       }
     }
 
+    /**
+     * Centres a block inside its parent. The parent is read here rather than
+     * passed in because the reducer is the only place that already holds the
+     * whole document; a grammar that had to measure the canvas first would need
+     * a second source of truth for it.
+     */
+    case 'center': {
+      const block = doc.blocks[cmd.id]
+      const parent = doc.blocks[doc.parents[cmd.id] ?? doc.rootId]
+      if (block === undefined || parent === undefined) return doc
+      if (cmd.id === doc.rootId) return doc
+
+      let props = block.props
+      if (cmd.axis === 'x' || cmd.axis === 'both') {
+        props = writeNumeric(props, 'x', Math.round((parent.props.w - props.w) / 2))
+      }
+      if (cmd.axis === 'y' || cmd.axis === 'both') {
+        props = writeNumeric(props, 'y', Math.round((parent.props.h - props.h) / 2))
+      }
+      return props === block.props ? doc : replaceBlock(doc, { ...block, props })
+    }
+
+    /**
+     * Scales about the centre, so a block grows in place rather than towards the
+     * bottom right. That matches the two-hand gesture, which is the other way a
+     * block is resized without touching a specific edge.
+     */
+    case 'scale': {
+      const block = doc.blocks[cmd.id]
+      if (block === undefined || !Number.isFinite(cmd.factor) || cmd.factor <= 0) return doc
+
+      if (cmd.of === 'font') {
+        const props = writeNumeric(block.props, 'fontSize', block.props.fontSize * cmd.factor)
+        return props === block.props ? doc : replaceBlock(doc, { ...block, props })
+      }
+
+      const w = clamp('w', block.props.w * cmd.factor)
+      const h = clamp('h', block.props.h * cmd.factor)
+      let props = writeNumeric(block.props, 'w', w)
+      props = writeNumeric(props, 'h', h)
+      props = writeNumeric(props, 'x', block.props.x - (w - block.props.w) / 2)
+      props = writeNumeric(props, 'y', block.props.y - (h - block.props.h) / 2)
+      return props === block.props ? doc : replaceBlock(doc, { ...block, props })
+    }
+
     case 'remove': {
       if (cmd.id === doc.rootId) return doc
       if (doc.blocks[cmd.id] === undefined) return doc

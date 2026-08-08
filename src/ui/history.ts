@@ -55,6 +55,15 @@ export function describeCommand(cmd: Command, doc: DocumentState): string {
       return `Deleted ${nameOf(doc, cmd.id)}`
     case 'move':
       return `Moved ${nameOf(doc, cmd.id)}`
+    case 'center': {
+      const where =
+        cmd.axis === 'both' ? 'on the canvas' : cmd.axis === 'x' ? 'horizontally' : 'vertically'
+      return `Centred ${nameOf(doc, cmd.id)} ${where}`
+    }
+    case 'scale': {
+      const what = cmd.of === 'font' ? 'type' : 'size'
+      return `${nameOf(doc, cmd.id)} · ${what} ×${String(Math.round(cmd.factor * 100) / 100)}`
+    }
     case 'select':
       return cmd.id === null ? 'Deselected' : `Selected ${nameOf(doc, cmd.id)}`
     case 'undo':
