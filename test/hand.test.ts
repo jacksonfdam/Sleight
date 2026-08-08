@@ -7,6 +7,7 @@ import { createBlock, emptyDocument } from '../src/core/document'
 import { reduce } from '../src/core/reducer'
 import { Store } from '../src/core/store'
 import type { Intent } from '../src/core/types'
+import type { HandleName } from '../src/render/renderer'
 import { HAND_ACTIVE_MARGIN, HAND_CONFIDENCE_MIN, PINCH_CLOSE, PINCH_OPEN } from '../src/tuning'
 import type { HandRequest } from '../src/vision/hand.worker'
 
@@ -47,6 +48,7 @@ describe('hand gesture mapping', () => {
   let adapter: HandAdapter
   let seen: Intent[]
   let hovered: string | null
+  let handle: HandleName | null
 
   beforeEach(() => {
     const doc = reduce(emptyDocument(), {
@@ -59,6 +61,7 @@ describe('hand gesture mapping', () => {
     store = new Store(doc)
     seen = []
     hovered = 'hero'
+    handle = null
     bus.subscribe(intent => {
       seen.push(intent)
       store.apply(intent.cmd, intent.txn, intent.ts)
@@ -70,6 +73,7 @@ describe('hand gesture mapping', () => {
       wasmPath: '/models/wasm',
       modelPath: '/models/hand_landmarker.task',
       getHovered: () => hovered,
+      getHandle: () => handle,
     })
   })
 
@@ -155,6 +159,43 @@ describe('hand gesture mapping', () => {
     sample(0.5, 0.5, PINCH_CLOSE - 0.01, 0)
     expect(adapter.cursor.visible).toBe(false)
     expect(bus.lockedBlock('geom')).toBeNull()
+  })
+
+  it('resizes instead of moving when the pinch closes over a handle', () => {
+    handle = 'se'
+    sample(0.5, 0.5, 1)
+    sample(0.5, 0.5, PINCH_CLOSE - 0.01)
+    sample(0.6, 0.6, PINCH_CLOSE - 0.01)
+
+    const hero = store.getState().doc.blocks['hero']
+    expect(hero?.props.w).toBeGreaterThan(400)
+    expect(hero?.props.h).toBeGreaterThan(200)
+    expect(hero?.props.x).toBe(0)
+    expect(hero?.props.y).toBe(0)
+  })
+
+  it('moves the origin as well for a north west handle', () => {
+    handle = 'nw'
+    sample(0.5, 0.5, 1)
+    sample(0.5, 0.5, PINCH_CLOSE - 0.01)
+    sample(0.45, 0.45, PINCH_CLOSE - 0.01)
+
+    const hero = store.getState().doc.blocks['hero']
+    expect(hero?.props.x).toBeLessThan(0)
+    expect(hero?.props.w).toBeGreaterThan(400)
+  })
+
+  it('keeps a whole pinch resize in one undo step', () => {
+    handle = 'se'
+    sample(0.5, 0.5, 1)
+    sample(0.5, 0.5, PINCH_CLOSE - 0.01)
+    for (let i = 1; i <= 6; i += 1) sample(0.5 + i * 0.01, 0.5 + i * 0.01, PINCH_CLOSE - 0.01)
+    sample(0.6, 0.6, PINCH_OPEN + 0.02)
+
+    expect(store.getState().doc.blocks['hero']?.props.w).toBeGreaterThan(400)
+    store.undo()
+    expect(store.getState().doc.blocks['hero']?.props.w).toBe(400)
+    expect(store.getState().doc.blocks['hero']?.props.h).toBe(200)
   })
 
   it('reports dwell progress while the hand holds still', () => {
