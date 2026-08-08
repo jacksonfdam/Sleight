@@ -430,3 +430,141 @@ describe('rejection', () => {
     })
   })
 })
+
+describe('centring on the canvas', () => {
+  it('centres on one axis', () => {
+    expect(parseGrammar('center it horizontally', context)).toEqual({
+      op: 'center',
+      id: 'hero',
+      axis: 'x',
+    })
+    expect(parseGrammar('centre it vertically', context)).toEqual({
+      op: 'center',
+      id: 'hero',
+      axis: 'y',
+    })
+  })
+
+  it('centres on both axes', () => {
+    expect(parseGrammar('center it on the canvas', context)).toEqual({
+      op: 'center',
+      id: 'hero',
+      axis: 'both',
+    })
+    expect(parseGrammar('center it horizontally and vertically', context)).toEqual({
+      op: 'center',
+      id: 'hero',
+      axis: 'both',
+    })
+  })
+
+  it('centres a named block', () => {
+    expect(parseGrammar('center the image vertically', context)).toEqual({
+      op: 'center',
+      id: 'shot',
+      axis: 'y',
+    })
+  })
+
+  // The verb is shared with text alignment, and that meaning has to survive.
+  it('leaves text centring alone when no axis is named', () => {
+    expect(parseGrammar('center it', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'align',
+      value: 'center',
+    })
+    expect(parseGrammar('centre the hero', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'align',
+      value: 'center',
+    })
+  })
+})
+
+describe('scaling by a factor', () => {
+  it('reads a named multiple', () => {
+    expect(parseGrammar('double the size', context)).toEqual({
+      op: 'scale',
+      id: 'hero',
+      factor: 2,
+      of: 'box',
+    })
+    expect(parseGrammar('triple the size', context)).toEqual({
+      op: 'scale',
+      id: 'hero',
+      factor: 3,
+      of: 'box',
+    })
+    expect(parseGrammar('halve it', context)).toEqual({
+      op: 'scale',
+      id: 'hero',
+      factor: 0.5,
+      of: 'box',
+    })
+  })
+
+  it('reads a percentage step', () => {
+    expect(parseGrammar('increase the size by 50 percent', context)).toEqual({
+      op: 'scale',
+      id: 'hero',
+      factor: 1.5,
+      of: 'box',
+    })
+    expect(parseGrammar('reduce the size by 25%', context)).toEqual({
+      op: 'scale',
+      id: 'hero',
+      factor: 0.75,
+      of: 'box',
+    })
+  })
+
+  it('reads a percentage destination', () => {
+    expect(parseGrammar('make it 150 percent', context)).toEqual({
+      op: 'scale',
+      id: 'hero',
+      factor: 1.5,
+      of: 'box',
+    })
+  })
+
+  it('scales the type when the phrase names it', () => {
+    expect(parseGrammar('double the font size', context)).toEqual({
+      op: 'scale',
+      id: 'hero',
+      factor: 2,
+      of: 'font',
+    })
+    expect(parseGrammar('increase the text size by 50 percent', context)).toEqual({
+      op: 'scale',
+      id: 'hero',
+      factor: 1.5,
+      of: 'font',
+    })
+  })
+
+  it('scales a named block', () => {
+    expect(parseGrammar('double the size of the image', context)).toEqual({
+      op: 'scale',
+      id: 'shot',
+      factor: 2,
+      of: 'box',
+    })
+  })
+
+  it('leaves the step commands it does not own alone', () => {
+    expect(parseGrammar('make it wider', context)).toEqual({
+      op: 'nudge',
+      id: 'hero',
+      path: 'w',
+      delta: VOICE_SIZE_STEP_PX,
+    })
+    expect(parseGrammar('set the width to 500', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'w',
+      value: 500,
+    })
+  })
+})
