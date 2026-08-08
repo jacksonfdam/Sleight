@@ -1,6 +1,6 @@
 .sl-canvas {
   position: relative;
-  background: var(--sl-canvas);
+  background: var(--sl-paper);
   border-radius: var(--sl-radius-md);
   box-shadow: var(--sl-shadow);
   overflow: hidden;
@@ -17,21 +17,21 @@
 }
 
 .sl-block--section {
-  background: var(--sl-surface-raised);
-  border: 1px dashed var(--sl-border-strong);
+  background: var(--sl-paper-raised);
+  border: 1px dashed var(--sl-paper-line);
   align-content: start;
 }
 
 .sl-block--hero {
-  background: var(--sl-surface-sunken);
+  background: var(--sl-paper-sunken);
   border-radius: var(--sl-radius-lg);
 }
 
 .sl-block--image {
   padding: 0;
   overflow: hidden;
-  background: var(--sl-surface-sunken);
-  border: 1px solid var(--sl-border);
+  background: var(--sl-paper-sunken);
+  border: 1px solid var(--sl-paper-line);
 }
 
 .sl-block__text {
@@ -53,7 +53,7 @@
   place-content: center;
   width: 100%;
   height: 100%;
-  color: var(--sl-text-muted);
+  color: var(--sl-paper-muted);
   font-family: var(--sl-font-ui);
   font-size: var(--sl-font-size-sm);
 }

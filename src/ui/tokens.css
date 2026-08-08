@@ -10,7 +10,18 @@
   --sl-surface: #f4f6f8;
   --sl-surface-raised: #ffffff;
   --sl-surface-sunken: #e6eaee;
-  --sl-canvas: #ffffff;
+
+  /*
+   * Paper tokens describe the document being authored, not the editor chrome.
+   * They deliberately do not flip with the colour scheme: block colours are
+   * content that ships in the export, so they must stay legible against the
+   * same background the exported page will use.
+   */
+  --sl-paper: #ffffff;
+  --sl-paper-raised: #f8fafb;
+  --sl-paper-sunken: #eceff2;
+  --sl-paper-line: #ccd5dd;
+  --sl-paper-muted: #5c6b7a;
 
   --sl-border: #d3dae1;
   --sl-border-strong: #aeb9c4;
@@ -63,7 +74,6 @@
     --sl-surface: #10151b;
     --sl-surface-raised: #19212a;
     --sl-surface-sunken: #0a0e13;
-    --sl-canvas: #1d262f;
 
     --sl-border: #2c3945;
     --sl-border-strong: #435364;
