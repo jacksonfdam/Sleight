@@ -106,7 +106,9 @@ export class Toolbar {
 
     const inserts = createGroup('Add a block')
     for (const entry of INSERTS) {
-      const button = createAction(entry.label, `Add a ${TYPE_LABELS[entry.type].toLowerCase()}`)
+      const name = TYPE_LABELS[entry.type].toLowerCase()
+      const article = /^[aeiou]/.test(name) ? 'an' : 'a'
+      const button = createAction(entry.label, `Add ${article} ${name}`)
       button.classList.add('sl-button--compact')
       button.addEventListener('click', () => {
         options.onInsert(entry.type)
