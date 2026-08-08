@@ -10,6 +10,7 @@ export class Overlay {
   private readonly context: CanvasRenderingContext2D | null
   private width = 0
   private height = 0
+  private ratio = 0
 
   constructor(host: HTMLElement) {
     this.canvas = document.createElement('canvas')
@@ -19,15 +20,23 @@ export class Overlay {
     this.context = this.canvas.getContext('2d')
   }
 
-  /** Matches the overlay to the document canvas in CSS pixels. */
+  /**
+   * The backing store is sized in device pixels and the context is scaled once,
+   * so every draw call below works in CSS pixels and matches document
+   * coordinates exactly. Without this a one pixel guide is blurred across two
+   * physical pixels on a retina display.
+   */
   resize(width: number, height: number): void {
-    if (width === this.width && height === this.height) return
+    const ratio = globalThis.devicePixelRatio || 1
+    if (width === this.width && height === this.height && ratio === this.ratio) return
     this.width = width
     this.height = height
-    this.canvas.width = width
-    this.canvas.height = height
+    this.ratio = ratio
+    this.canvas.width = Math.round(width * ratio)
+    this.canvas.height = Math.round(height * ratio)
     this.canvas.style.width = `${String(width)}px`
     this.canvas.style.height = `${String(height)}px`
+    this.context?.setTransform(ratio, 0, 0, ratio, 0, 0)
   }
 
   clear(): void {
