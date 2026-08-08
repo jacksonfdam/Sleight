@@ -1,5 +1,7 @@
 import './ui/tokens.css'
 import './ui/shell.css'
+import type { HandStatus } from './adapters/hand'
+import { HandAdapter } from './adapters/hand'
 import { PointerAdapter } from './adapters/pointer'
 import { VoiceAdapter } from './adapters/voice'
 import { IntentBus } from './core/bus'
@@ -7,9 +9,23 @@ import { starterDocument } from './core/document'
 import { Store } from './core/store'
 import { Overlay, computeGuides } from './render/overlay'
 import { Renderer } from './render/renderer'
+import HandWorker from './vision/hand.worker?worker'
 import { Toolbar } from './ui/toolbar'
 import { CommandParser } from './language/parser'
 import { SpeechInput, isSpeechSupported } from './language/speech'
+
+/** Plain sentences rather than raw permission errors. */
+const CAMERA_NOTICE: Record<HandStatus, string> = {
+  off: '',
+  starting: 'Starting the camera.',
+  running: '',
+  denied: 'Camera access was declined. Hand tracking stays off until it is allowed.',
+  failed: 'The camera could not be started on this device.',
+}
+
+function isCameraSupported(): boolean {
+  return typeof navigator.mediaDevices?.getUserMedia === 'function'
+}
 
 interface Shell {
   readonly toolbar: HTMLElement
@@ -66,16 +82,45 @@ async function start(host: HTMLElement): Promise<void> {
 
   let hovered: string | null = null
 
+  const hand = new HandAdapter({
+    bus,
+    worker: new HandWorker(),
+    surface: shell.canvasHost,
+    wasmPath: `${import.meta.env.BASE_URL}models/wasm`,
+    modelPath: `${import.meta.env.BASE_URL}models/hand_landmarker.task`,
+    getHovered: () => hovered,
+    onStatus: status => {
+      toolbar.setCameraActive(hand.running)
+      toolbar.setNotice(CAMERA_NOTICE[status])
+    },
+  })
+
+  /**
+   * One hit test per frame, against whichever source is in charge. The hand wins
+   * while its cursor is visible so that a hand reaching across the canvas is not
+   * fighting a mouse resting somewhere else.
+   */
   const draw = (): void => {
     const state = store.getState()
     const root = state.doc.blocks[state.doc.rootId]
     if (root) overlay.resize(root.props.w, root.props.h)
 
-    hovered = pointerX < 0 ? null : renderer.hitTest(pointerX, pointerY)
-    if (hovered !== state.hoveredId) bus.emit({ op: 'hover', id: hovered }, 'pointer')
+    const cursor = hand.cursor
+    if (cursor.visible) hovered = renderer.hitTest(cursor.x, cursor.y)
+    else hovered = pointerX < 0 ? null : renderer.hitTest(pointerX, pointerY)
+    if (hovered !== state.hoveredId) {
+      bus.emit({ op: 'hover', id: hovered }, cursor.visible ? 'hand' : 'pointer')
+    }
 
     overlay.clear()
     overlay.drawGuides(computeGuides(state.doc, bus.lockedBlock('geom')))
+    if (cursor.visible) {
+      const rect = shell.canvasHost.getBoundingClientRect()
+      const x = cursor.x - rect.left
+      const y = cursor.y - rect.top
+      overlay.drawDwell(x, y, cursor.dwell)
+      overlay.drawCursor(x, y, cursor.pinching)
+    }
     requestAnimationFrame(draw)
   }
 
@@ -110,10 +155,16 @@ async function start(host: HTMLElement): Promise<void> {
     host: shell.toolbar,
     statusHost: shell.status,
     speechSupported: isSpeechSupported(),
+    cameraSupported: isCameraSupported(),
     onMicToggle: active => {
       if (active) speech.start()
       else speech.stop()
       toolbar.setMicActive(speech.listening)
+    },
+    onCameraToggle: active => {
+      if (active) void hand.start()
+      else hand.stop()
+      toolbar.setCameraActive(hand.running)
     },
   })
   toolbar.setTier(parser.tier)

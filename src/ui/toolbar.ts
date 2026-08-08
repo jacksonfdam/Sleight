@@ -23,7 +23,9 @@ export interface ToolbarOptions {
   readonly statusHost: HTMLElement
   /** Hidden entirely when speech recognition is missing, rather than shown broken. */
   readonly speechSupported: boolean
+  readonly cameraSupported: boolean
   readonly onMicToggle: (active: boolean) => void
+  readonly onCameraToggle: (active: boolean) => void
 }
 
 function createToggle(label: string, description: string): HTMLButtonElement {
@@ -44,6 +46,8 @@ function createToggle(label: string, description: string): HTMLButtonElement {
 
 export class Toolbar {
   private readonly mic: HTMLButtonElement | null = null
+  private readonly camera: HTMLButtonElement | null = null
+  private readonly notice: HTMLElement
   private readonly badge: HTMLElement
   private readonly detail: HTMLElement
 
@@ -56,6 +60,19 @@ export class Toolbar {
 
     this.detail = document.createElement('span')
     options.statusHost.append(this.detail)
+
+    this.notice = document.createElement('span')
+    this.notice.className = 'sl-notice'
+    options.statusHost.append(this.notice)
+
+    if (options.cameraSupported) {
+      const camera = createToggle('Camera', 'Turn hand tracking on or off')
+      camera.addEventListener('click', () => {
+        options.onCameraToggle(camera.getAttribute('aria-pressed') !== 'true')
+      })
+      spacer?.before(camera)
+      this.camera = camera
+    }
 
     if (options.speechSupported) {
       const mic = createToggle('Microphone', 'Turn the microphone on or off')
@@ -70,6 +87,15 @@ export class Toolbar {
 
   setMicActive(active: boolean): void {
     this.mic?.setAttribute('aria-pressed', active ? 'true' : 'false')
+  }
+
+  setCameraActive(active: boolean): void {
+    this.camera?.setAttribute('aria-pressed', active ? 'true' : 'false')
+  }
+
+  /** Short, plain sentence for a denied permission or a failed start. */
+  setNotice(message: string): void {
+    this.notice.textContent = message
   }
 
   /**

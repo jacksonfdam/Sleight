@@ -71,3 +71,7 @@
   color: var(--sl-warning);
   border-color: currentcolor;
 }
+
+.sl-notice {
+  color: var(--sl-warning);
+}
