@@ -289,6 +289,10 @@ microphone does not edit the document.
 | `deselect`                                        | Clears the selection                       |
 | `add a heading` / `add an h3`                     | Inserts a heading; a bare heading is an h1 |
 | `add a paragraph` / `insert a picture`            | Inserts a block of that type               |
+| `delete it` / `remove this`                       | Deletes the selection                      |
+| `delete the image` / `get rid of the last block`  | Deletes the block that is named            |
+| `make the second heading wider`                   | Acts on a named block, not the selection   |
+| `change the image's width to 300`                 | A possessive names the block too           |
 | `undo` / `redo`                                   | Moves through history                      |
 | `change the text to Welcome aboard`               | Replaces the block's text                  |
 | `set the source to https://example.com/photo.jpg` | Points an image block at a URL             |
@@ -298,6 +302,12 @@ a position (`first`, `last`, `next`, `previous`), a type with an optional
 ordinal (`the second h2`), and finally the block's own label. The label comes
 last because labels are free text and would otherwise shadow the fixed
 vocabulary the rest of the grammar depends on.
+
+The same target phrases work inside a property or delete command, so a block can
+be edited without selecting it first. The property is read from the end of the
+phrase and everything before it is the target, matched longest first — which is
+what keeps `change the text colour` a property change on the selection rather
+than a colour change aimed at the first text block on the canvas.
 
 Units are optional: `32`, `32 pixels`, and `32px` are equivalent. Recognised
 colour names are black, white, grey, gray, silver, slate, navy, blue, sky, cyan,
@@ -346,9 +356,9 @@ and no secrets are required, because all inference is on device.
   concept and is the first thing that would change.
 - Nine block types: `section`, `hero`, `h1` to `h4`, `paragraph`, `text`, and
   `image`. Headings and paragraphs carry their real tag through to the export.
-- Blocks can be added but not deleted. Insertion is available from the toolbar
-  and by voice; removing one means undoing back to before it, because there is
-  no delete control and the grammar has no phrase for it.
+- Blocks are added from the toolbar or by voice, and deleted by voice only.
+  There is no delete control in the interface, so a session without a working
+  microphone can add a block but not remove it except by undoing.
 - The canvas is a fixed 960 by 640 and nothing can resize it. Once a page is
   full, a new block cascades over what is already there rather than extending
   the page, and has to be dragged somewhere useful.

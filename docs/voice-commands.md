@@ -5,8 +5,11 @@ browser that has speech recognition and works with the network disconnected. Whe
 the built-in language model is available it handles freer phrasing and falls back
 to this grammar whenever it cannot produce a valid command.
 
-Commands that change a property act on the current selection. If nothing is
-selected they are ignored.
+Commands that change a property act on the current selection unless they name a
+block. Every phrasing in the [Selection](#selection) table also works inside a
+property or delete command: `make the second heading wider` and
+`change the image's width to 300` need no selection at all. If no block is named
+and nothing is selected, the command is ignored.
 
 ## Colour
 
@@ -36,14 +39,22 @@ Anything else is ignored rather than guessed at.
 
 Units are optional: `32`, `32 pixels`, and `32px` are equivalent.
 
+A block name can be inserted into any of these: `make the hero wider`,
+`change the second heading's font size to 40`, `make the intro copy text
+smaller`. The property is read from the end of the phrase and whatever precedes
+it is the target, so `text colour` stays a property while `the text block's
+colour` names a block.
+
 ## Alignment
 
-| Say                             | Effect                |
-| ------------------------------- | --------------------- |
-| `align left`                    | Left aligns the text  |
-| `align center` / `align centre` | Centres the text      |
-| `align right`                   | Right aligns the text |
-| `center it`                     | Centres the text      |
+| Say                             | Effect                  |
+| ------------------------------- | ----------------------- |
+| `align left`                    | Left aligns the text    |
+| `align center` / `align centre` | Centres the text        |
+| `align right`                   | Right aligns the text   |
+| `center it`                     | Centres the text        |
+| `align the image to the right`  | Aligns the named block  |
+| `centre the hero`               | Centres the named block |
 
 ## Selection
 
@@ -66,7 +77,22 @@ type with an optional ordinal, and only then the block's own label.
 
 Type names accept synonyms: `banner` for a hero, `title` for an `h1`, `subtitle`
 for an `h2`, `copy` or `body` for a paragraph, and `picture` or `photo` for an
-image. A plural is accepted wherever a singular is.
+image. `block` and `element` match any type, so `the third element` counts
+across the whole canvas. A plural is accepted wherever a singular is, and a
+possessive names the same block as the plain form.
+
+## Deleting a block
+
+| Say                         | Effect                          |
+| --------------------------- | ------------------------------- |
+| `delete` / `delete it`      | Deletes the current selection   |
+| `remove this`               | Same                            |
+| `delete the image`          | Deletes the block that is named |
+| `get rid of the last block` | Any target phrasing works here  |
+
+The canvas itself is not in the target vocabulary, so no phrasing reaches it.
+A deletion is an ordinary transaction: `undo` brings the block back with its
+properties intact.
 
 ## Adding a block
 
