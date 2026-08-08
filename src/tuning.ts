@@ -57,3 +57,35 @@ export const MODEL_TIMEOUT_MS = 1200
 export const ONE_EURO_MIN_CUTOFF = 1
 export const ONE_EURO_BETA = 0.007
 export const ONE_EURO_D_CUTOFF = 1
+
+/**
+ * Pinch thresholds, as a normalised distance between thumb tip and index tip.
+ * They are deliberately different: a single threshold sits exactly where the
+ * signal is noisiest and produces phantom releases in the middle of a drag.
+ * Widening the gap makes the gesture more forgiving but slower to register.
+ */
+export const PINCH_CLOSE = 0.045
+export const PINCH_OPEN = 0.065
+
+/**
+ * Below this tracking confidence the cursor is hidden rather than drawn. A
+ * cursor that wanders on its own is worse than no cursor: it invites the user to
+ * chase it. Raising this hides the cursor during ordinary hand rotation.
+ */
+export const HAND_CONFIDENCE_MIN = 0.6
+
+/**
+ * Dwell click: how long the cursor must stay inside a small circle to count as
+ * a click, and how big that circle is. Shorter fires while the hand is merely
+ * passing over a block; longer makes the fallback tiring to use.
+ */
+export const DWELL_MS = 600
+export const DWELL_RADIUS_PX = 20
+
+/**
+ * Fraction of the camera frame trimmed from each edge before mapping to the
+ * canvas. Hand tracking degrades near the frame edge, so the usable middle is
+ * stretched to cover the whole canvas. Larger means less arm movement covers
+ * more canvas, at the cost of precision.
+ */
+export const HAND_ACTIVE_MARGIN = 0.15
