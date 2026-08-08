@@ -290,6 +290,17 @@ and no secrets are required, because all inference is on device.
   the hand landmarker model and the rest is the WebAssembly runtime. The
   application code itself is 15 kB gzipped, plus 45 kB gzipped for the worker.
   Nothing under `/models/` is fetched until the camera is switched on.
+- Offline behaviour depends on the HTTP cache rather than a service worker.
+  Editing, voice through the grammar, the inspector, export, and persistence all
+  work with the network disconnected after first load. Hand tracking does too,
+  but only once the vision assets are in the cache — and they are only fetched
+  when the camera is first switched on. Enable the camera once while online and
+  the `immutable` header in `vercel.json` keeps them available offline for a
+  year. Precaching them behind a service worker would close that gap.
+- Keyboard access covers the editor chrome: the toolbar and every inspector field
+  are reachable and operable by keyboard, and each control carries a label.
+  Blocks on the canvas cannot yet be selected or moved from the keyboard; that
+  needs a roving focus model the canvas does not have.
 
 ## License
 
