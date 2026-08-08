@@ -219,6 +219,15 @@ export function parseGrammar(utterance: string, context: ParseContext): Command 
     if (type !== null) return insertCommand(context.doc, type)
   }
 
+  // The canvas itself is not in the target vocabulary, so no phrasing of this
+  // can reach the root block. Deleting is a normal transaction and undoes like
+  // any other, which is what makes it safe to accept from a microphone at all.
+  const remove = /^(?:delete|remove|drop|erase|get rid of)(?: (?<target>.+))?$/.exec(text)
+  if (remove !== null) {
+    const id = targetFor(remove.groups?.['target'] ?? '', context)
+    return id === null ? NOOP : { op: 'remove', id }
+  }
+
   // Every rule below takes an optional target, so none of them needs a
   // selection to exist. `targetFor` supplies the selection when none is named.
   const align = /^(?:align|justify) (?<rest>.+)$/.exec(text)
