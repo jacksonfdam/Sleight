@@ -55,11 +55,12 @@ Firefox, and Safari do not support it at all.
 The active tier is detected at runtime and stated in the toolbar and the status
 bar. There is no capability error to interpret.
 
-| Tier    | Requirement                      | Voice behaviour                                                  |
-| ------- | -------------------------------- | ---------------------------------------------------------------- |
-| Full    | `LanguageModel` available        | Natural-language commands, with the grammar as a fallback        |
-| Grammar | Speech recognition, but no model | The documented grammar handles a fixed set of phrasings          |
-| Manual  | No speech recognition            | Voice controls are hidden; mouse and hand editing are unaffected |
+| Tier     | Requirement                      | Voice behaviour                                                  |
+| -------- | -------------------------------- | ---------------------------------------------------------------- |
+| Starting | Still asking the browser         | Everything but the microphone is already usable                  |
+| Full     | `LanguageModel` available        | Natural-language commands, with the grammar as a fallback        |
+| Grammar  | Speech recognition, but no model | The documented grammar handles a fixed set of phrasings          |
+| Manual   | No speech recognition            | Voice controls are hidden; mouse and hand editing are unaffected |
 
 Every tier works with the network disconnected after first load, with one
 exception: GIF search calls the Giphy API. Everything else — editing, the
@@ -80,6 +81,39 @@ Without a key the feature reports itself as unconfigured in the status bar and
 changes nothing; the rest of the editor is unaffected. `.env.local` is ignored
 by git, so no key is ever committed. Requests carry the search term and nothing
 else — no document content and no identifier.
+
+## Start-up and the capability badge
+
+Opening a model session is the only slow step at start-up, and on a cold profile
+it takes seconds. The toolbar is therefore built before that wait rather than
+after it: blocks, undo, export, and the camera are usable from the first paint,
+and the badge reads `Starting` until the answer arrives. The microphone is the
+one control held back, because it is the only one that cannot work without the
+answer.
+
+The configuration is written to the console once, at start-up:
+
+```
+[sleight] voice · tier=grammar · parser=the deterministic grammar only ·
+          model=unavailable · language=en · speech=available
+```
+
+Which parser is in charge and which language it was asked for explain almost
+every "the voice command did nothing" report, and neither is visible from the
+outside otherwise.
+
+The language is declared on both calls into the built-in model — `availability`
+and `create` — because Chrome cannot attest to output safety without one and
+warns on every request that omits it. English is the only honest value: the
+command vocabulary is English, and the grammar behind the model could not read a
+response in anything else.
+
+`temperature` and `topK` are deliberately not passed. A classification task
+wants the most deterministic sampling available, but Chrome has made both
+extension-only, so a page that sets them gets a deprecation warning and no
+effect. Determinism is enforced after the fact instead: every response is
+narrowed to the command union, and anything that fails falls through to the
+grammar.
 
 ## The history panel
 

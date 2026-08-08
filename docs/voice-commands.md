@@ -208,6 +208,22 @@ stripped before parsing. Anything that does not match a pattern above produces n
 command at all rather than a guess, so ordinary conversation near an open
 microphone does not edit the document.
 
+## Which parser is running
+
+The badge in the toolbar names the tier, and the console states the whole
+configuration once at start-up:
+
+```
+[sleight] voice · tier=grammar · parser=the deterministic grammar only ·
+          model=unavailable · language=en · speech=available
+```
+
+`model=unavailable` means the browser has no built-in language model running, so
+every phrasing has to come from the tables above. `model=available` with
+`tier=full` means freer phrasing is accepted and these tables are the fallback.
+While the badge reads `Starting`, the answer has not arrived yet and the
+microphone is held disabled; everything else in the editor already works.
+
 ## When nothing happens
 
 Silence is the one failure voice can produce, and two places report it. The
