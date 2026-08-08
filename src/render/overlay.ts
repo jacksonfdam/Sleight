@@ -183,6 +183,27 @@ export class Overlay {
     context.restore()
   }
 
+  /** Continuous feedback for the dwell timer, drawn as a filling arc. */
+  drawDwell(x: number, y: number, progress: number): void {
+    const context = this.context
+    if (context === null || progress <= 0) return
+
+    context.save()
+    context.lineWidth = 3
+    context.lineCap = 'round'
+
+    context.strokeStyle = this.ringColor
+    context.beginPath()
+    context.arc(x, y, 16, 0, Math.PI * 2)
+    context.stroke()
+
+    context.strokeStyle = this.cursorColor
+    context.beginPath()
+    context.arc(x, y, 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress)
+    context.stroke()
+    context.restore()
+  }
+
   drawGuides(guides: readonly Guide[]): void {
     const context = this.context
     if (context === null || guides.length === 0) return
