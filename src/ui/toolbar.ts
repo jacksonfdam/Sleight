@@ -13,6 +13,7 @@ const INSERTS: readonly { readonly type: BlockType; readonly label: string }[] =
   { type: 'h3', label: 'H3' },
   { type: 'h4', label: 'H4' },
   { type: 'paragraph', label: 'Text' },
+  { type: 'image', label: 'Image' },
 ]
 
 const TIERS: Record<CapabilityTier, { readonly badge: string; readonly detail: string }> = {

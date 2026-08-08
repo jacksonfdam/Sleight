@@ -9,6 +9,7 @@ import { IntentBus } from './core/bus'
 import { insertCommand, starterDocument } from './core/document'
 import { loadDocument, saveDocument } from './core/persistence'
 import { Store } from './core/store'
+import { GifLibrary } from './media/gifs'
 import { exportHtml } from './render/export'
 import { Overlay, computeGuides } from './render/overlay'
 import type { HandleName } from './render/renderer'
@@ -187,12 +188,18 @@ async function start(host: HTMLElement): Promise<void> {
 
   new PointerAdapter({ surface: shell.stage, bus }).attach()
 
+  const gifs = new GifLibrary({ key: import.meta.env.VITE_GIPHY_KEY })
+
   const parser = await CommandParser.create({
     getContext: () => {
       const state = store.getState()
       return { doc: state.doc, selectedId: state.selectedId }
     },
     getLockedKeys: () => bus.lockedKeys(),
+    gifs,
+    onNotice: message => {
+      toolbar.setNotice(message)
+    },
   })
 
   const voice = new VoiceAdapter({
