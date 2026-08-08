@@ -14,11 +14,42 @@ const BASE_PROPS: BlockProps = {
   text: '',
 }
 
+/** Every type, in the order the toolbar and the ordinal grammar walk them. */
+export const BLOCK_TYPES = [
+  'section',
+  'hero',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'paragraph',
+  'text',
+  'image',
+] as const satisfies readonly BlockType[]
+
 const TYPE_DEFAULTS: Record<BlockType, Partial<BlockProps>> = {
   section: { w: 640, h: 280, color: '#5b6b7c' },
   hero: { w: 640, h: 260, color: '#0f766e', fontSize: 34, align: 'center', text: 'Hero headline' },
+  h1: { w: 560, h: 64, fontSize: 40, text: 'Heading one' },
+  h2: { w: 520, h: 52, fontSize: 30, text: 'Heading two' },
+  h3: { w: 480, h: 44, fontSize: 24, text: 'Heading three' },
+  h4: { w: 440, h: 38, fontSize: 20, text: 'Heading four' },
+  paragraph: { w: 420, h: 96, fontSize: 16, text: 'Paragraph text' },
   text: { w: 320, h: 96, fontSize: 16, text: 'Body copy' },
   image: { w: 280, h: 180, src: '' },
+}
+
+/** The name a newly inserted block carries in the inspector and the grammar. */
+export const TYPE_LABELS: Record<BlockType, string> = {
+  section: 'Section',
+  hero: 'Hero',
+  h1: 'Heading 1',
+  h2: 'Heading 2',
+  h3: 'Heading 3',
+  h4: 'Heading 4',
+  paragraph: 'Paragraph',
+  text: 'Text',
+  image: 'Image',
 }
 
 export function defaultProps(type: BlockType, overrides: Partial<BlockProps> = {}): BlockProps {
@@ -149,5 +180,5 @@ export function isAlign(value: unknown): value is Align {
 }
 
 export function isBlockType(value: unknown): value is BlockType {
-  return value === 'section' || value === 'hero' || value === 'text' || value === 'image'
+  return typeof value === 'string' && (BLOCK_TYPES as readonly string[]).includes(value)
 }

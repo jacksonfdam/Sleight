@@ -1,4 +1,18 @@
-export type BlockType = 'section' | 'hero' | 'text' | 'image'
+/**
+ * Heading levels are separate types rather than one heading type with a level
+ * property. The export is HTML, so the level decides the element tag, and a tag
+ * is not something a block should be able to hold an out-of-range value for.
+ */
+export type BlockType =
+  | 'section'
+  | 'hero'
+  | 'h1'
+  | 'h2'
+  | 'h3'
+  | 'h4'
+  | 'paragraph'
+  | 'text'
+  | 'image'
 
 export type Align = 'left' | 'center' | 'right'
 

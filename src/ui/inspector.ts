@@ -30,11 +30,18 @@ const SOURCE: readonly FieldSpec[] = [
   { path: 'src', label: 'Image source', kind: 'url', wide: true },
 ]
 
+const WRITTEN: readonly FieldSpec[] = [...GEOMETRY, ...TYPOGRAPHY]
+
 /** Which properties are meaningful for each block type. */
 const FIELDS: Record<BlockType, readonly FieldSpec[]> = {
   section: GEOMETRY,
-  hero: [...GEOMETRY, ...TYPOGRAPHY],
-  text: [...GEOMETRY, ...TYPOGRAPHY],
+  hero: WRITTEN,
+  h1: WRITTEN,
+  h2: WRITTEN,
+  h3: WRITTEN,
+  h4: WRITTEN,
+  paragraph: WRITTEN,
+  text: WRITTEN,
   image: [...GEOMETRY, ...SOURCE],
 }
 
