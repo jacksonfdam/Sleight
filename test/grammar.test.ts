@@ -151,7 +151,21 @@ describe('history and selection', () => {
   })
 
   it('ignores a block type that is not on the canvas', () => {
-    expect(parseGrammar('select the banner', context)).toEqual({ op: 'noop' })
+    expect(parseGrammar('select the section', context)).toEqual({ op: 'noop' })
+  })
+
+  it('selects by label when the phrase names no type', () => {
+    expect(parseGrammar('select intro copy', context)).toEqual({ op: 'select', id: 'intro' })
+  })
+
+  it('selects by position in the canvas order', () => {
+    expect(parseGrammar('select the last block', context)).toEqual({ op: 'select', id: 'shot' })
+    expect(parseGrammar('select the first block', context)).toEqual({ op: 'select', id: 'hero' })
+  })
+
+  it('walks the canvas relative to the selection', () => {
+    expect(parseGrammar('select the next block', context)).toEqual({ op: 'select', id: 'intro' })
+    expect(parseGrammar('select the previous block', context)).toEqual({ op: 'select', id: 'shot' })
   })
 })
 
