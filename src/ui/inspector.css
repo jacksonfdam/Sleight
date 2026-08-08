@@ -37,6 +37,20 @@
   grid-column: 1 / -1;
 }
 
+/* A switch reads as a checkbox with its name beside it, not above it. */
+.sl-field--flag {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sl-space-2);
+}
+
+.sl-field--flag input {
+  width: auto;
+  accent-color: var(--sl-accent);
+}
+
 .sl-field > span {
   color: var(--sl-text-muted);
   font-size: var(--sl-font-size-sm);

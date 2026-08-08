@@ -201,7 +201,9 @@ export class Inspector {
     fields.className = 'sl-fields'
     for (const spec of FIELDS[block.type]) {
       const label = document.createElement('label')
-      label.className = spec.wide === true ? 'sl-field sl-field--wide' : 'sl-field'
+      label.className = 'sl-field'
+      if (spec.wide === true) label.classList.add('sl-field--wide')
+      if (spec.kind === 'flag') label.classList.add('sl-field--flag')
       const caption = document.createElement('span')
       caption.textContent = spec.label
       const control = createControl(spec)
