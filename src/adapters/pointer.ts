@@ -45,27 +45,42 @@ export class PointerAdapter {
   }
 
   attach(): () => void {
-    const onDown = (event: PointerEvent): void => {
-      this.handleDown(event)
-    }
-    const onMove = (event: PointerEvent): void => {
-      this.handleMove(event)
-    }
-    const onUp = (event: PointerEvent): void => {
-      this.handleUp(event)
-    }
-
-    this.surface.addEventListener('pointerdown', onDown)
-    this.surface.addEventListener('pointermove', onMove)
-    this.surface.addEventListener('pointerup', onUp)
-    this.surface.addEventListener('pointercancel', onUp)
-
+    this.surface.addEventListener('pointerdown', this.onDown)
     return () => {
-      this.surface.removeEventListener('pointerdown', onDown)
-      this.surface.removeEventListener('pointermove', onMove)
-      this.surface.removeEventListener('pointerup', onUp)
-      this.surface.removeEventListener('pointercancel', onUp)
+      this.surface.removeEventListener('pointerdown', this.onDown)
+      this.stopTracking()
     }
+  }
+
+  private readonly onDown = (event: PointerEvent): void => {
+    this.handleDown(event)
+  }
+
+  private readonly onMove = (event: PointerEvent): void => {
+    this.handleMove(event)
+  }
+
+  private readonly onUp = (event: PointerEvent): void => {
+    this.handleUp(event)
+  }
+
+  /**
+   * Move and release are tracked on the window rather than through pointer
+   * capture: a drag that leaves the stage, or ends outside the window entirely,
+   * still has to close its transaction and free the lock it holds.
+   */
+  private startTracking(): void {
+    const view = this.surface.ownerDocument.defaultView ?? window
+    view.addEventListener('pointermove', this.onMove)
+    view.addEventListener('pointerup', this.onUp)
+    view.addEventListener('pointercancel', this.onUp)
+  }
+
+  private stopTracking(): void {
+    const view = this.surface.ownerDocument.defaultView ?? window
+    view.removeEventListener('pointermove', this.onMove)
+    view.removeEventListener('pointerup', this.onUp)
+    view.removeEventListener('pointercancel', this.onUp)
   }
 
   private handleDown(event: PointerEvent): void {
@@ -79,7 +94,6 @@ export class PointerAdapter {
     if (target === null) return
 
     event.preventDefault()
-    this.surface.setPointerCapture(event.pointerId)
     const kind = handle === null ? 'move' : 'resize'
     this.drag = {
       id: target,
@@ -89,6 +103,7 @@ export class PointerAdapter {
       lastX: event.clientX,
       lastY: event.clientY,
     }
+    this.startTracking()
   }
 
   private handleMove(event: PointerEvent): void {
@@ -138,9 +153,7 @@ export class PointerAdapter {
   private handleUp(event: PointerEvent): void {
     const drag = this.drag
     if (drag === null || event.pointerId !== drag.pointerId) return
-    if (this.surface.hasPointerCapture(event.pointerId)) {
-      this.surface.releasePointerCapture(event.pointerId)
-    }
+    this.stopTracking()
     this.drag = null
     // Releasing here rather than waiting for the lease to expire lets a voice
     // command deferred during the drag apply the moment the drag ends.
