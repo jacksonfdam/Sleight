@@ -86,6 +86,11 @@ function applyProps(el: HTMLElement, block: Block): void {
   el.style.color = props.color
   el.style.fontSize = `${String(props.fontSize)}px`
   el.style.textAlign = props.align
+  // Cleared rather than set to `normal` when off, so a heading falls back to the
+  // weight its own tag carries instead of being flattened to body text.
+  el.style.fontWeight = props.bold ? '700' : ''
+  el.style.fontStyle = props.italic ? 'italic' : ''
+  el.style.textDecoration = props.underline ? 'underline' : ''
 
   if (!carriesText(block.type)) {
     const img = el.querySelector<HTMLImageElement>(`.${IMAGE_CLASS}`)

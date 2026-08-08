@@ -68,6 +68,9 @@ function setFrom(id: string, path: PropPath, value: unknown): Command {
   if (path === 'color' || path === 'src' || path === 'text') {
     return typeof value === 'string' ? { op: 'set', id, path, value } : NOOP
   }
+  if (path === 'bold' || path === 'italic' || path === 'underline') {
+    return typeof value === 'boolean' ? { op: 'set', id, path, value } : NOOP
+  }
   return typeof value === 'number' && Number.isFinite(value) ? { op: 'set', id, path, value } : NOOP
 }
 

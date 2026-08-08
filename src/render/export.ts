@@ -41,6 +41,9 @@ function styleFor(block: Block): string {
     `text-align:${props.align}`,
   ]
   if (props.rotation !== 0) rules.push(`transform:rotate(${String(props.rotation)}deg)`)
+  if (props.bold) rules.push('font-weight:700')
+  if (props.italic) rules.push('font-style:italic')
+  if (props.underline) rules.push('text-decoration:underline')
   return rules.join(';')
 }
 

@@ -25,10 +25,32 @@ export interface BlockProps {
   readonly align: Align
   readonly src: string
   readonly text: string
+  readonly bold: boolean
+  readonly italic: boolean
+  readonly underline: boolean
 }
 
 export type PropPath =
-  'x' | 'y' | 'w' | 'h' | 'rotation' | 'color' | 'fontSize' | 'align' | 'src' | 'text'
+  | 'x'
+  | 'y'
+  | 'w'
+  | 'h'
+  | 'rotation'
+  | 'color'
+  | 'fontSize'
+  | 'align'
+  | 'src'
+  | 'text'
+  | 'bold'
+  | 'italic'
+  | 'underline'
+
+/**
+ * Paths that are either on or off. They are separate booleans rather than one
+ * style string because they combine: bold italic underline is three independent
+ * answers, not a fourth value.
+ */
+export type FlagPath = 'bold' | 'italic' | 'underline'
 
 /** Paths whose values can be shifted by a relative delta. */
 export type NumericPath = 'x' | 'y' | 'w' | 'h' | 'fontSize' | 'rotation'

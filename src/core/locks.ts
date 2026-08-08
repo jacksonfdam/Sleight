@@ -21,6 +21,9 @@ export const GROUP: Record<PropPath, PropGroup> = {
   align: 'style',
   src: 'content',
   text: 'content',
+  bold: 'style',
+  italic: 'style',
+  underline: 'style',
 }
 
 export function lockKey(blockId: string, group: PropGroup): string {

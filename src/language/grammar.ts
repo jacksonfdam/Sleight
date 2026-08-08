@@ -110,6 +110,9 @@ function resolveAlign(raw: string): Align | null {
   return isAlign(value) ? value : null
 }
 
+/** Values that turn a flag off, for `set the bold to off` style phrasing. */
+const OFF = /^(?:off|false|no|none|normal|plain)$/
+
 function propFor(raw: string): PropPath | null {
   return PROPS[raw.trim().replace(/^(?:the|its|it's) /, '')] ?? null
 }
@@ -228,6 +231,10 @@ function setCommand(id: string, path: PropPath, raw: string): Command {
       return { op: 'set', id, path: 'text', value: raw.trim() }
     case 'src':
       return { op: 'set', id, path: 'src', value: raw.trim() }
+    case 'bold':
+    case 'italic':
+    case 'underline':
+      return { op: 'set', id, path, value: !OFF.test(raw.trim()) }
   }
 }
 

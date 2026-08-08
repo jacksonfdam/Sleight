@@ -15,6 +15,9 @@ const BASE_PROPS: BlockProps = {
   align: 'left',
   src: '',
   text: '',
+  bold: false,
+  italic: false,
+  underline: false,
 }
 
 /** Every type, in the order the toolbar and the ordinal grammar walk them. */

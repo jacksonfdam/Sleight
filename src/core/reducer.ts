@@ -71,6 +71,12 @@ function applySet(props: BlockProps, cmd: SetCommand): BlockProps {
       return props.src === cmd.value ? props : { ...props, src: cmd.value }
     case 'text':
       return props.text === cmd.value ? props : { ...props, text: cmd.value }
+    case 'bold':
+      return props.bold === cmd.value ? props : { ...props, bold: cmd.value }
+    case 'italic':
+      return props.italic === cmd.value ? props : { ...props, italic: cmd.value }
+    case 'underline':
+      return props.underline === cmd.value ? props : { ...props, underline: cmd.value }
   }
 }
 

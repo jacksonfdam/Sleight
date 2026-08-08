@@ -17,6 +17,11 @@ function text(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback
 }
 
+/** Anything that is not a stored `true` reads as off, including a missing key. */
+function flag(value: unknown): boolean {
+  return value === true
+}
+
 function readProps(value: unknown): BlockProps {
   const record = asRecord(value) ?? {}
   const align = record['align']
@@ -31,6 +36,9 @@ function readProps(value: unknown): BlockProps {
     align: isAlign(align) ? align : 'left',
     src: text(record['src'], ''),
     text: text(record['text'], ''),
+    bold: flag(record['bold']),
+    italic: flag(record['italic']),
+    underline: flag(record['underline']),
   }
 }
 

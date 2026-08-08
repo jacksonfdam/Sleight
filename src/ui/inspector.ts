@@ -3,7 +3,7 @@ import { isAlign } from '../core/document'
 import type { EditorState } from '../core/store'
 import type { Block, BlockType, Command, PropPath } from '../core/types'
 
-type FieldKind = 'number' | 'color' | 'align' | 'text' | 'url'
+type FieldKind = 'number' | 'color' | 'align' | 'text' | 'url' | 'flag'
 
 interface FieldSpec {
   readonly path: PropPath
@@ -23,6 +23,9 @@ const GEOMETRY: readonly FieldSpec[] = [
 const TYPOGRAPHY: readonly FieldSpec[] = [
   { path: 'fontSize', label: 'Font size', kind: 'number' },
   { path: 'align', label: 'Align', kind: 'align' },
+  { path: 'bold', label: 'Bold', kind: 'flag' },
+  { path: 'italic', label: 'Italic', kind: 'flag' },
+  { path: 'underline', label: 'Underline', kind: 'flag' },
   { path: 'color', label: 'Colour', kind: 'color', wide: true },
   { path: 'text', label: 'Text', kind: 'text', wide: true },
 ]
@@ -70,6 +73,11 @@ function createControl(spec: FieldSpec): HTMLElement {
       area.rows = 3
       return area
     }
+    case 'flag': {
+      const input = document.createElement('input')
+      input.type = 'checkbox'
+      return input
+    }
     case 'align': {
       const select = document.createElement('select')
       for (const value of ['left', 'center', 'right'] as const) {
@@ -85,7 +93,7 @@ function createControl(spec: FieldSpec): HTMLElement {
 
 function controlValue(block: Block, spec: FieldSpec): string {
   const value = block.props[spec.path]
-  return typeof value === 'number' ? String(value) : value
+  return typeof value === 'string' ? value : String(value)
 }
 
 export interface InspectorOptions {
@@ -116,7 +124,22 @@ function commandFor(id: string, spec: FieldSpec, raw: string): Command | null {
       return { op: 'set', id, path: 'src', value: raw }
     case 'text':
       return { op: 'set', id, path: 'text', value: raw }
+    case 'bold':
+    case 'italic':
+    case 'underline':
+      return { op: 'set', id, path: spec.path, value: raw === 'true' }
   }
+}
+
+/** A checkbox carries its state on `checked`; `value` is the constant "on". */
+function readControl(control: HTMLElement): string | null {
+  if (control instanceof HTMLInputElement) {
+    return control.type === 'checkbox' ? String(control.checked) : control.value
+  }
+  if (control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement) {
+    return control.value
+  }
+  return null
 }
 
 /**
@@ -196,14 +219,9 @@ export class Inspector {
   }
 
   private emit(id: string, spec: FieldSpec, control: HTMLElement): void {
-    if (
-      !(control instanceof HTMLInputElement) &&
-      !(control instanceof HTMLSelectElement) &&
-      !(control instanceof HTMLTextAreaElement)
-    ) {
-      return
-    }
-    const cmd = commandFor(id, spec, control.value)
+    const raw = readControl(control)
+    if (raw === null) return
+    const cmd = commandFor(id, spec, raw)
     if (cmd !== null) this.options.onCommand(cmd)
   }
 
@@ -213,7 +231,9 @@ export class Inspector {
       if (control === undefined) continue
       // Never fight the field the user is currently typing into.
       if (document.activeElement === control) continue
-      if (
+      if (control instanceof HTMLInputElement && control.type === 'checkbox') {
+        control.checked = block.props[spec.path] === true
+      } else if (
         control instanceof HTMLInputElement ||
         control instanceof HTMLSelectElement ||
         control instanceof HTMLTextAreaElement
