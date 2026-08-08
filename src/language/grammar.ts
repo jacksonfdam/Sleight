@@ -112,6 +112,61 @@ function propFor(raw: string): PropPath | null {
   return PROPS[raw.trim().replace(/^(?:the|its|it's) /, '')] ?? null
 }
 
+/**
+ * Words that carry no target of their own. They are dropped before the rest of
+ * a phrase is looked up, so "it", "to the", and "" all mean the same thing: act
+ * on whatever is selected.
+ */
+const FILLER = /^(?:to|into|the|a|an|my|its|it|this|that)$/
+
+/** The longest property name is two words; three allows for a leading article. */
+const PROP_WORDS = 3
+
+/**
+ * The block a property phrase acts on, or null when it names a block that is not
+ * on the canvas. An empty remainder falls back to the selection, which is what
+ * makes "make it wider" and "make the hero wider" the same rule rather than two.
+ */
+function targetFor(phrase: string, context: ParseContext): string | null {
+  const rest = phrase
+    .split(' ')
+    .filter(word => word.length > 0 && !FILLER.test(word))
+    .join(' ')
+  if (rest.length === 0) return context.selectedId
+  return resolveTarget(context.doc, rest, context.selectedId)?.id ?? null
+}
+
+/**
+ * Splits a phrase such as `the second heading font size` into the block it names
+ * and the property it names. The property is matched from the longest candidate
+ * down, because `text colour` has to win over the trailing `colour` — otherwise
+ * the leading `text` would be read as a block type and quietly retarget the
+ * command at the first text block on the canvas.
+ */
+function targetedProp(
+  phrase: string,
+  context: ParseContext,
+): { readonly id: string; readonly path: PropPath } | null {
+  const words = phrase.split(' ').filter(word => word.length > 0)
+  for (let take = Math.min(PROP_WORDS, words.length); take >= 1; take -= 1) {
+    const path = propFor(words.slice(words.length - take).join(' '))
+    if (path === null) continue
+    const id = targetFor(words.slice(0, words.length - take).join(' '), context)
+    if (id !== null) return { id, path }
+  }
+  return null
+}
+
+/** A relative size change, on the box or on the type. */
+function growCommand(id: string, how: string, font: boolean): Command | null {
+  const step = GROW[how]
+  if (step === undefined) return null
+  if (!font) return { op: 'nudge', id, path: step.path, delta: step.sign * VOICE_SIZE_STEP_PX }
+  // Type has one axis, so only the words that mean "more" or "less" apply to it.
+  if (how === 'taller' || how === 'shorter') return null
+  return { op: 'nudge', id, path: 'fontSize', delta: step.sign * VOICE_FONT_STEP_PX }
+}
+
 function setCommand(id: string, path: PropPath, raw: string): Command {
   switch (path) {
     case 'color': {
@@ -164,27 +219,33 @@ export function parseGrammar(utterance: string, context: ParseContext): Command 
     if (type !== null) return insertCommand(context.doc, type)
   }
 
-  const id = context.selectedId
-  if (id === null) return NOOP
-
-  const align = /^(?:align|justify)(?: it| this)?(?: to)?(?: the)? (?<value>\w+)$/.exec(text)
-  if (align?.groups?.['value'] !== undefined) {
-    const value = resolveAlign(align.groups['value'])
-    return value === null ? NOOP : { op: 'set', id, path: 'align', value }
-  }
-  if (/^cent(?:er|re) it$/.test(text)) return { op: 'set', id, path: 'align', value: 'center' }
-
-  const textGrow = /^make (?:the )?(?:text|type|font) (?<how>bigger|larger|smaller)$/.exec(text)
-  if (textGrow?.groups?.['how'] !== undefined) {
-    const sign = textGrow.groups['how'] === 'smaller' ? -1 : 1
-    return { op: 'nudge', id, path: 'fontSize', delta: sign * VOICE_FONT_STEP_PX }
+  // Every rule below takes an optional target, so none of them needs a
+  // selection to exist. `targetFor` supplies the selection when none is named.
+  const align = /^(?:align|justify) (?<rest>.+)$/.exec(text)
+  if (align?.groups?.['rest'] !== undefined) {
+    const words = align.groups['rest'].split(' ')
+    const value = resolveAlign(words[words.length - 1] ?? '')
+    const id = targetFor(words.slice(0, -1).join(' '), context)
+    if (value !== null && id !== null) return { op: 'set', id, path: 'align', value }
   }
 
-  const grow = /^make (?:it|this|that)? ?(?<how>\w+)$/.exec(text)
-  if (grow?.groups?.['how'] !== undefined) {
-    const step = GROW[grow.groups['how']]
-    if (step !== undefined) {
-      return { op: 'nudge', id, path: step.path, delta: step.sign * VOICE_SIZE_STEP_PX }
+  const centre = /^cent(?:er|re)(?: (?<target>.+))?$/.exec(text)
+  if (centre !== null) {
+    const id = targetFor(centre.groups?.['target'] ?? '', context)
+    if (id !== null) return { op: 'set', id, path: 'align', value: 'center' }
+  }
+
+  const grow = /^make (?<rest>.+)$/.exec(text)
+  if (grow?.groups?.['rest'] !== undefined) {
+    const words = grow.groups['rest'].split(' ')
+    const how = words[words.length - 1] ?? ''
+    const head = words.slice(0, -1)
+    // A trailing `text`, `type`, or `font` moves the change from box to type.
+    const font = /^(?:text|type|font)$/.test(head[head.length - 1] ?? '')
+    const id = targetFor((font ? head.slice(0, -1) : head).join(' '), context)
+    if (id !== null) {
+      const cmd = growCommand(id, how, font)
+      if (cmd !== null) return cmd
     }
   }
 
@@ -194,8 +255,8 @@ export function parseGrammar(utterance: string, context: ParseContext): Command 
   const prop = set?.groups?.['prop']
   const value = set?.groups?.['value']
   if (prop !== undefined && value !== undefined) {
-    const path = propFor(prop)
-    if (path !== null) return setCommand(id, path, value)
+    const targeted = targetedProp(prop, context)
+    if (targeted !== null) return setCommand(targeted.id, targeted.path, value)
   }
 
   return NOOP
