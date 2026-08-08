@@ -18,3 +18,11 @@ export const LOCK_TTL_MS = 1500
  * guides fire at once, which reads as noise rather than alignment.
  */
 export const SNAP_TOLERANCE_PX = 6
+
+/**
+ * Silence after an interim speech result before it is treated as a finished
+ * command. Lower and half-spoken phrases get parsed. Higher and every command
+ * waits on the recogniser's own end-of-speech detection, which costs several
+ * hundred milliseconds of felt latency.
+ */
+export const VOICE_PAUSE_MS = 320
