@@ -36,3 +36,10 @@ export const VOICE_SIZE_STEP_PX = 40
 
 /** Step applied by "make the text bigger". Same trade-off at type scale. */
 export const VOICE_FONT_STEP_PX = 4
+
+/**
+ * How long the built-in model gets before the grammar answers instead. Lower and
+ * valid model responses are thrown away on a busy machine. Higher and a stalled
+ * inference is felt as the editor ignoring what was said.
+ */
+export const MODEL_TIMEOUT_MS = 1200
