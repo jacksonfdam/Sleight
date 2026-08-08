@@ -1,6 +1,7 @@
 import './inspector.css'
+import { isAlign } from '../core/document'
 import type { EditorState } from '../core/store'
-import type { Block, BlockType, PropPath } from '../core/types'
+import type { Block, BlockType, Command, PropPath } from '../core/types'
 
 type FieldKind = 'number' | 'color' | 'align' | 'text' | 'url'
 
@@ -81,6 +82,32 @@ function controlValue(block: Block, spec: FieldSpec): string {
 
 export interface InspectorOptions {
   readonly host: HTMLElement
+  readonly onCommand: (cmd: Command) => void
+}
+
+/**
+ * Turns a raw field value into a command, or null when the field does not hold a
+ * usable value yet — a half-typed number, an unrecognised alignment.
+ */
+function commandFor(id: string, spec: FieldSpec, raw: string): Command | null {
+  switch (spec.path) {
+    case 'x':
+    case 'y':
+    case 'w':
+    case 'h':
+    case 'fontSize': {
+      const value = Number.parseInt(raw, 10)
+      return Number.isFinite(value) ? { op: 'set', id, path: spec.path, value } : null
+    }
+    case 'align':
+      return isAlign(raw) ? { op: 'set', id, path: 'align', value: raw } : null
+    case 'color':
+      return { op: 'set', id, path: 'color', value: raw }
+    case 'src':
+      return { op: 'set', id, path: 'src', value: raw }
+    case 'text':
+      return { op: 'set', id, path: 'text', value: raw }
+  }
 }
 
 /**
@@ -89,12 +116,14 @@ export interface InspectorOptions {
  * under whoever is typing in it.
  */
 export class Inspector {
+  private readonly options: InspectorOptions
   private readonly host: HTMLElement
   private readonly controls = new Map<PropPath, HTMLElement>()
   private renderedId: string | null = null
   private renderedType: BlockType | null = null
 
   constructor(options: InspectorOptions) {
+    this.options = options
     this.host = options.host
   }
 
@@ -144,12 +173,29 @@ export class Inspector {
       const caption = document.createElement('span')
       caption.textContent = spec.label
       const control = createControl(spec)
+      // `input` rather than `change` so a dragged colour swatch or a held arrow
+      // key shows on the canvas while it is happening.
+      control.addEventListener('input', () => {
+        this.emit(block.id, spec, control)
+      })
       label.append(caption, control)
       fields.append(label)
       this.controls.set(spec.path, control)
     }
 
     this.host.append(title, type, fields)
+  }
+
+  private emit(id: string, spec: FieldSpec, control: HTMLElement): void {
+    if (
+      !(control instanceof HTMLInputElement) &&
+      !(control instanceof HTMLSelectElement) &&
+      !(control instanceof HTMLTextAreaElement)
+    ) {
+      return
+    }
+    const cmd = commandFor(id, spec, control.value)
+    if (cmd !== null) this.options.onCommand(cmd)
   }
 
   private fill(block: Block): void {

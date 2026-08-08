@@ -128,7 +128,12 @@ async function start(host: HTMLElement): Promise<void> {
     requestAnimationFrame(draw)
   }
 
-  const inspector = new Inspector({ host: shell.inspector })
+  const inspector = new Inspector({
+    host: shell.inspector,
+    onCommand: cmd => {
+      bus.emit(cmd, 'pointer')
+    },
+  })
 
   store.subscribe(state => {
     renderer.render(state)
