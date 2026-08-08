@@ -26,3 +26,13 @@ export const SNAP_TOLERANCE_PX = 6
  * hundred milliseconds of felt latency.
  */
 export const VOICE_PAUSE_MS = 320
+
+/**
+ * Step applied by a spoken size command such as "make it wider". Lower and the
+ * command has to be repeated to make a visible difference. Higher and a single
+ * utterance overshoots past the layout the speaker had in mind.
+ */
+export const VOICE_SIZE_STEP_PX = 40
+
+/** Step applied by "make the text bigger". Same trade-off at type scale. */
+export const VOICE_FONT_STEP_PX = 4
