@@ -85,6 +85,7 @@ export class Toolbar {
   private readonly mic: HTMLButtonElement | null = null
   private readonly camera: HTMLButtonElement | null = null
   private readonly notice: HTMLElement
+  private readonly heard: HTMLElement
   private readonly undo: HTMLButtonElement
   private readonly redo: HTMLButtonElement
   private readonly badge: HTMLElement
@@ -103,6 +104,10 @@ export class Toolbar {
     this.notice = document.createElement('span')
     this.notice.className = 'sl-notice'
     options.statusHost.append(this.notice)
+
+    this.heard = document.createElement('span')
+    this.heard.className = 'sl-heard'
+    options.statusHost.append(this.heard)
 
     const inserts = createGroup('Add a block')
     for (const entry of INSERTS) {
@@ -163,6 +168,19 @@ export class Toolbar {
   /** Short, plain sentence for a denied permission or a failed start. */
   setNotice(message: string): void {
     this.notice.textContent = message
+  }
+
+  /**
+   * What the microphone heard, and whether it became a command.
+   *
+   * Without this, a misheard word is indistinguishable from a microphone that
+   * is not working at all: both produce silence. Showing the transcript makes
+   * the difference obvious at a glance.
+   */
+  setHeard(utterance: string, understood: boolean): void {
+    this.heard.textContent = utterance.length === 0 ? '' : `“${utterance}”`
+    this.heard.dataset['understood'] = understood ? 'yes' : 'no'
+    this.heard.title = understood ? 'Understood' : 'No command matched this'
   }
 
   /**

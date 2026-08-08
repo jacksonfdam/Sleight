@@ -109,3 +109,22 @@
 .sl-notice {
   color: var(--sl-warning);
 }
+
+/*
+ * The transcript of the last utterance. It is coloured by whether a command came
+ * out of it, so a misheard phrase reads differently from one that simply is not
+ * in the vocabulary.
+ */
+.sl-heard {
+  font-family: var(--sl-font-mono);
+  font-style: italic;
+}
+
+.sl-heard[data-understood='yes'] {
+  color: var(--sl-ok);
+}
+
+.sl-heard[data-understood='no'] {
+  color: var(--sl-text-muted);
+  text-decoration: line-through;
+}

@@ -205,6 +205,9 @@ async function start(host: HTMLElement): Promise<void> {
   const voice = new VoiceAdapter({
     bus,
     parse: utterance => parser.parse(utterance),
+    onResult: (utterance, cmd) => {
+      toolbar.setHeard(utterance, cmd.op !== 'noop')
+    },
   })
 
   const speech = new SpeechInput({
