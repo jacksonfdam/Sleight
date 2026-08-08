@@ -80,3 +80,33 @@ describe('standalone export', () => {
     expect(child).toBeLessThan(close)
   })
 })
+
+describe('rotation and text styles in the export', () => {
+  const styled = (): ReturnType<typeof starterDocument> => {
+    let doc = starterDocument()
+    doc = reduce(doc, { op: 'set', id: 'shot', path: 'rotation', value: 12 })
+    doc = reduce(doc, { op: 'set', id: 'intro', path: 'bold', value: true })
+    doc = reduce(doc, { op: 'set', id: 'intro', path: 'italic', value: true })
+    doc = reduce(doc, { op: 'set', id: 'intro', path: 'underline', value: true })
+    return doc
+  }
+
+  it('writes a rotation as a transform', () => {
+    expect(exportHtml(styled())).toContain('transform:rotate(12deg)')
+  })
+
+  it('omits the transform when a block is not rotated', () => {
+    expect(exportHtml(starterDocument())).not.toContain('transform')
+  })
+
+  it('writes each text style it is given', () => {
+    const html = exportHtml(styled())
+    expect(html).toContain('font-weight:700')
+    expect(html).toContain('font-style:italic')
+    expect(html).toContain('text-decoration:underline')
+  })
+
+  it('writes no style rule for a flag that is off', () => {
+    expect(exportHtml(starterDocument())).not.toContain('font-weight')
+  })
+})

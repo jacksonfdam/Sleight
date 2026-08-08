@@ -128,3 +128,45 @@ describe('storage failure', () => {
     }).not.toThrow()
   })
 })
+
+describe('the newer properties', () => {
+  it('round trips rotation and the text styles', () => {
+    let doc = starterDocument()
+    doc = reduce(doc, { op: 'set', id: 'shot', path: 'rotation', value: 270 })
+    doc = reduce(doc, { op: 'set', id: 'intro', path: 'italic', value: true })
+    const restored = deserializeDocument(serializeDocument(doc))
+    expect(restored?.blocks['shot']?.props.rotation).toBe(270)
+    expect(restored?.blocks['intro']?.props.italic).toBe(true)
+    expect(restored?.blocks['intro']?.props.bold).toBe(false)
+  })
+
+  // A page saved before these properties existed has to keep opening.
+  it('supplies a default for a document saved without them', () => {
+    const raw = JSON.stringify({
+      rootId: 'root',
+      blocks: [
+        { id: 'root', type: 'section', label: 'Canvas', props: { w: 960, h: 640 } },
+        { id: 'a', type: 'text', label: 'A', props: { x: 1, y: 2, w: 3, h: 4 } },
+      ],
+      children: { root: ['a'] },
+    })
+    const restored = deserializeDocument(raw)
+    expect(restored?.blocks['a']?.props.rotation).toBe(0)
+    expect(restored?.blocks['a']?.props.bold).toBe(false)
+    expect(restored?.blocks['a']?.props.underline).toBe(false)
+  })
+
+  it('reads anything other than true as off', () => {
+    const raw = JSON.stringify({
+      rootId: 'root',
+      blocks: [
+        { id: 'root', type: 'section', label: 'Canvas', props: {} },
+        { id: 'a', type: 'text', label: 'A', props: { bold: 'yes', italic: 1 } },
+      ],
+      children: { root: ['a'] },
+    })
+    const restored = deserializeDocument(raw)
+    expect(restored?.blocks['a']?.props.bold).toBe(false)
+    expect(restored?.blocks['a']?.props.italic).toBe(false)
+  })
+})

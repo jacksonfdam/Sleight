@@ -172,3 +172,46 @@ describe('remove', () => {
     expect(reduce(doc, { op: 'remove', id: 'ghost' })).toBe(doc)
   })
 })
+
+describe('rotation', () => {
+  const angle = (doc: ReturnType<typeof seed>): number | undefined =>
+    doc.blocks['hero']?.props.rotation
+
+  it('wraps past a full turn rather than stopping at it', () => {
+    expect(angle(reduce(seed(), { op: 'set', id: 'hero', path: 'rotation', value: 400 }))).toBe(40)
+    expect(angle(reduce(seed(), { op: 'set', id: 'hero', path: 'rotation', value: 360 }))).toBe(0)
+  })
+
+  it('wraps a negative angle into the positive range', () => {
+    expect(angle(reduce(seed(), { op: 'set', id: 'hero', path: 'rotation', value: -90 }))).toBe(270)
+  })
+
+  it('keeps turning when nudged past the top', () => {
+    let doc = reduce(seed(), { op: 'set', id: 'hero', path: 'rotation', value: 350 })
+    doc = reduce(doc, { op: 'nudge', id: 'hero', path: 'rotation', delta: 20 })
+    expect(angle(doc)).toBe(10)
+  })
+
+  it('falls back to zero for a value that is not a number', () => {
+    expect(
+      angle(reduce(seed(), { op: 'set', id: 'hero', path: 'rotation', value: Number.NaN })),
+    ).toBe(0)
+  })
+})
+
+describe('text styles', () => {
+  it('switches a flag and reports no change when it is already set', () => {
+    const on = reduce(seed(), { op: 'set', id: 'hero', path: 'bold', value: true })
+    expect(on.blocks['hero']?.props.bold).toBe(true)
+    expect(reduce(on, { op: 'set', id: 'hero', path: 'bold', value: true })).toBe(on)
+  })
+
+  it('keeps the three flags independent', () => {
+    let doc = reduce(seed(), { op: 'set', id: 'hero', path: 'bold', value: true })
+    doc = reduce(doc, { op: 'set', id: 'hero', path: 'underline', value: true })
+    const props = doc.blocks['hero']?.props
+    expect(props?.bold).toBe(true)
+    expect(props?.underline).toBe(true)
+    expect(props?.italic).toBe(false)
+  })
+})
