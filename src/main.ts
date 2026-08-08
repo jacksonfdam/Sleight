@@ -3,6 +3,7 @@ import './ui/shell.css'
 import type { HandStatus } from './adapters/hand'
 import { HandAdapter } from './adapters/hand'
 import { HoverDamper } from './adapters/hover'
+import { KeyboardAdapter } from './adapters/keyboard'
 import { PointerAdapter } from './adapters/pointer'
 import { VoiceAdapter } from './adapters/voice'
 import { IntentBus } from './core/bus'
@@ -192,6 +193,7 @@ async function start(host: HTMLElement): Promise<void> {
   shell.stage.prepend(hand.feed)
 
   new PointerAdapter({ surface: shell.stage, bus }).attach()
+  new KeyboardAdapter({ bus, getSelected: () => store.getState().selectedId }).attach()
 
   const gifs = new GifLibrary({ key: import.meta.env.VITE_GIPHY_KEY })
 
