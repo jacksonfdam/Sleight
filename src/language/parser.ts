@@ -1,5 +1,6 @@
 import { insertCommand, isAlign, isBlockType, listBlocks } from '../core/document'
 import type { GifLibrary, GifOutcome } from '../media/gifs'
+import type { GifRequest } from './gif-phrases'
 import { parseGifRequest } from './gif-phrases'
 import type { Align, Command, NumericPath, PropPath } from '../core/types'
 import type { ParseContext } from './grammar'
@@ -216,7 +217,7 @@ export class CommandParser {
   async parse(utterance: string): Promise<Command> {
     const context = this.deps.getContext()
 
-    const gif = await this.parseGif(utterance, context)
+    const gif = await this.parseGif(utterance)
     if (gif !== null) return gif
 
     if (this.session === null) return parseGrammar(utterance, context)
@@ -234,21 +235,34 @@ export class CommandParser {
    * a phrase it does not recognise returns null and the rest of the pipeline
    * proceeds as though this feature did not exist.
    */
-  private async parseGif(utterance: string, context: ParseContext): Promise<Command | null> {
+  private async parseGif(utterance: string): Promise<Command | null> {
     const library = this.deps.gifs
     if (library === undefined) return null
     const request = parseGifRequest(utterance)
     if (request === null) return null
+
+    // Nothing to change or shuffle before a search has run, so those phrases go
+    // back to being ordinary words rather than reporting a GIF failure.
+    if (request.kind !== 'search' && request.kind !== 'keep' && !library.browsing) return null
+
+    return this.fulfilGif(request)
+  }
+
+  /**
+   * Runs a GIF request and returns the command it produces. Public because the
+   * inspector offers the same four actions as buttons: a spoken request and a
+   * clicked one have to reach the same code, or they will drift apart.
+   */
+  async fulfilGif(request: GifRequest): Promise<Command> {
+    const library = this.deps.gifs
+    if (library === undefined) return NOOP
+    const context = this.deps.getContext()
 
     if (request.kind === 'keep') {
       library.keep()
       this.deps.onNotice?.('')
       return NOOP
     }
-
-    // Nothing to change or shuffle before a search has run, so those phrases go
-    // back to being ordinary words rather than reporting a GIF failure.
-    if (request.kind !== 'search' && !library.browsing) return null
 
     const id = imageTarget(context)
     if (id === null) {
