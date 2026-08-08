@@ -168,6 +168,23 @@ Selection and hover outlines are `::after` pseudo-elements on the block itself,
 so their geometry follows layout with no measurement, and the highlight is
 identical whether a mouse or a hand produced it.
 
+## The editor chrome
+
+The chrome is styled as an instrument panel: a grid behind the page, corner
+brackets around it, a light travelling under the toolbar, and a slow band
+crossing the stage. All of it is drawn from the `--sl-hud-*` tokens, which are
+separate from the paper tokens that describe the document. That separation is
+the point — the page being authored keeps a neutral background in both colour
+schemes, because those pixels ship in the export and the editor's own styling
+must never reach them.
+
+Everything that moves does so under two constraints. Animations run on
+`transform` and `opacity` only, so the compositor handles them and a drag never
+competes with them for paint. And every one of them is turned off under
+`prefers-reduced-motion: reduce`, including the turning reticle around the hand
+cursor, which is drawn on canvas and so reads the media query in JavaScript
+rather than in a stylesheet.
+
 Two rules keep the per-frame path cheap:
 
 - Hit testing runs exactly once per frame inside the rAF loop, never per event.
@@ -264,10 +281,22 @@ microphone does not edit the document.
 | `align left` / `align center` / `align right`     | Sets alignment                             |
 | `center it`                                       | Centres the text                           |
 | `select the hero` / `select the image`            | Selects the first block of that type       |
+| `select the second heading`                       | Counts blocks of that type in canvas order |
+| `select the last paragraph`                       | Takes the final one instead of the first   |
+| `select intro copy`                               | Matches the block's label                  |
+| `select the next block` / `select the previous`   | Walks the canvas, wrapping at the ends     |
 | `deselect`                                        | Clears the selection                       |
+| `add a heading` / `add an h3`                     | Inserts a heading; a bare heading is an h1 |
+| `add a paragraph` / `insert a picture`            | Inserts a block of that type               |
 | `undo` / `redo`                                   | Moves through history                      |
 | `change the text to Welcome aboard`               | Replaces the block's text                  |
 | `set the source to https://example.com/photo.jpg` | Points an image block at a URL             |
+
+A target can be named four ways, tried in that order: a pronoun (`it`, `this`),
+a position (`first`, `last`, `next`, `previous`), a type with an optional
+ordinal (`the second h2`), and finally the block's own label. The label comes
+last because labels are free text and would otherwise shadow the fixed
+vocabulary the rest of the grammar depends on.
 
 Units are optional: `32`, `32 pixels`, and `32px` are equivalent. Recognised
 colour names are black, white, grey, gray, silver, slate, navy, blue, sky, cyan,
@@ -314,8 +343,14 @@ and no secrets are required, because all inference is on device.
 - Documents persist to `localStorage` only. There is no account, no sync, and no
   server; clearing site data clears the page. This is deliberate for a proof of
   concept and is the first thing that would change.
-- Four block types: `section`, `hero`, `text`, and `image`. There is no way to
-  add a block from the interface; the starter document is the starting point.
+- Nine block types: `section`, `hero`, `h1` to `h4`, `paragraph`, `text`, and
+  `image`. Headings and paragraphs carry their real tag through to the export.
+- Blocks can be added but not deleted. Insertion is available from the toolbar
+  and by voice; removing one means undoing back to before it, because there is
+  no delete control and the grammar has no phrase for it.
+- The canvas is a fixed 960 by 640 and nothing can resize it. Once a page is
+  full, a new block cascades over what is already there rather than extending
+  the page, and has to be dragged somewhere useful.
 - No collaborative editing. The lock table resolves contention between input
   sources on one machine, not between people.
 - No rotation. The two-hand gesture scales and pans but does not rotate, because
