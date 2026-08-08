@@ -111,8 +111,11 @@ selected once it lands.
 
 A block is stacked under the lowest one that shares its column. When the column
 is full the next one is used, and when the canvas has no room left the block
-cascades from the top corner. There is no spoken command for deleting a block;
-`undo` is the way back.
+cascades from the top corner.
+
+`block` and `element` name no type on their own, so `add a block` is refused
+rather than guessed at, while `add a heading block` is the same as
+`add a heading`.
 
 ## History
 
