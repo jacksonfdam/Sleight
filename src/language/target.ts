@@ -85,9 +85,14 @@ function typesFor(phrase: string): readonly BlockType[] | null {
   return TYPE_WORDS[phrase] ?? TYPE_WORDS[phrase.replace(/s$/, '')] ?? null
 }
 
-/** The type a spoken word creates, or null when the word names no type. */
+/**
+ * The type a spoken word creates, or null when the word names no type. A
+ * trailing `block` or `element` is dropped, because "add a heading block" names
+ * the same thing as "add a heading".
+ */
 export function blockTypeFor(phrase: string): BlockType | null {
-  return typesFor(stripArticle(normalise(phrase)))?.[0] ?? null
+  const bare = stripArticle(normalise(phrase)).replace(/ (?:block|element)$/, '')
+  return typesFor(bare)?.[0] ?? null
 }
 
 function byRelative(word: string, blocks: readonly Block[], selected: Block | null): Block | null {

@@ -1,7 +1,7 @@
-import { isAlign } from '../core/document'
+import { insertCommand, isAlign } from '../core/document'
 import type { Align, Command, DocumentState, NumericPath, PropPath } from '../core/types'
 import { VOICE_FONT_STEP_PX, VOICE_SIZE_STEP_PX } from '../tuning'
-import { resolveTarget } from './target'
+import { blockTypeFor, resolveTarget } from './target'
 
 export interface ParseContext {
   readonly doc: DocumentState
@@ -154,6 +154,14 @@ export function parseGrammar(utterance: string, context: ParseContext): Command 
   if (select?.groups?.['target'] !== undefined) {
     const block = resolveTarget(context.doc, select.groups['target'], context.selectedId)
     return block === null ? NOOP : { op: 'select', id: block.id }
+  }
+
+  // Insert is checked before the selection guard: adding a block is the one
+  // command that is meaningful with nothing selected.
+  const add = /^(?:add|insert|create|place|put|new) (?<what>.+)$/.exec(text)
+  if (add?.groups?.['what'] !== undefined) {
+    const type = blockTypeFor(add.groups['what'])
+    if (type !== null) return insertCommand(context.doc, type)
   }
 
   const id = context.selectedId
