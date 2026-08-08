@@ -5,10 +5,16 @@
   padding: 6px 10px;
   color: var(--sl-text);
   font: inherit;
+  font-size: var(--sl-font-size-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   background: var(--sl-surface);
-  border: 1px solid var(--sl-border);
+  border: 1px solid var(--sl-hud-line);
   border-radius: var(--sl-radius-sm);
   cursor: pointer;
+  transition:
+    box-shadow 160ms ease,
+    border-color 160ms ease;
 }
 
 .sl-button--compact {
@@ -32,7 +38,8 @@
 }
 
 .sl-button:hover:not(:disabled) {
-  border-color: var(--sl-border-strong);
+  border-color: var(--sl-hud-ink);
+  box-shadow: 0 0 0 3px var(--sl-hud-glow);
 }
 
 .sl-button:disabled {
@@ -45,6 +52,7 @@
   color: var(--sl-text-inverse);
   background: var(--sl-accent);
   border-color: var(--sl-accent-strong);
+  box-shadow: 0 0 0 3px var(--sl-hud-glow);
 }
 
 .sl-button__dot {
@@ -67,18 +75,24 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .sl-button {
+    transition: none;
+  }
+
   .sl-button[aria-pressed='true'] .sl-button__dot {
     animation: none;
   }
 }
 
 .sl-badge {
-  padding: 3px 8px;
+  padding: 3px 10px;
   color: var(--sl-text-muted);
+  font-family: var(--sl-font-mono);
   font-size: var(--sl-font-size-sm);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   background: var(--sl-surface-sunken);
-  border: 1px solid var(--sl-border);
+  border: 1px solid var(--sl-hud-line);
   border-radius: 999px;
 }
 
