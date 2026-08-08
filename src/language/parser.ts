@@ -1,4 +1,6 @@
-import { insertCommand, isAlign, isBlockType } from '../core/document'
+import { insertCommand, isAlign, isBlockType, listBlocks } from '../core/document'
+import type { GifLibrary, GifOutcome } from '../media/gifs'
+import { parseGifRequest } from './gif-phrases'
 import type { Align, Command, NumericPath, PropPath } from '../core/types'
 import type { ParseContext } from './grammar'
 import { parseGrammar } from './grammar'
@@ -154,6 +156,24 @@ export function validateCommand(value: unknown, context: ParseContext): Command 
 export interface ParserDeps {
   readonly getContext: () => ParseContext
   readonly getLockedKeys: () => readonly string[]
+  readonly gifs?: GifLibrary
+  /** Short sentences for states that produce no command, such as a failed search. */
+  readonly onNotice?: (message: string) => void
+}
+
+/** Plain sentences rather than a silent no-op the speaker cannot account for. */
+const GIF_NOTICE: Record<GifOutcome, string> = {
+  ok: '',
+  unconfigured: 'GIF search needs a Giphy key in VITE_GIPHY_KEY. Nothing else is affected.',
+  empty: 'No GIF matched that.',
+  offline: 'The GIF service could not be reached.',
+}
+
+/** The block a GIF lands in: the selection when it is an image, else the first. */
+function imageTarget(context: ParseContext): string | null {
+  const selected = context.selectedId === null ? undefined : context.doc.blocks[context.selectedId]
+  if (selected?.type === 'image') return selected.id
+  return listBlocks(context.doc).find(block => block.type === 'image')?.id ?? null
 }
 
 /** The JSON context the model classifies against. */
@@ -195,6 +215,10 @@ export class CommandParser {
    */
   async parse(utterance: string): Promise<Command> {
     const context = this.deps.getContext()
+
+    const gif = await this.parseGif(utterance, context)
+    if (gif !== null) return gif
+
     if (this.session === null) return parseGrammar(utterance, context)
 
     const raw = await this.session.run(buildPrompt(utterance, context, this.deps.getLockedKeys()))
@@ -202,6 +226,46 @@ export class CommandParser {
 
     const parsed = this.narrow(raw, context)
     return parsed.op === 'noop' ? parseGrammar(utterance, context) : parsed
+  }
+
+  /**
+   * The GIF path runs ahead of both the model and the grammar. It is the only
+   * command that reaches outside the machine, so it is kept on its own branch:
+   * a phrase it does not recognise returns null and the rest of the pipeline
+   * proceeds as though this feature did not exist.
+   */
+  private async parseGif(utterance: string, context: ParseContext): Promise<Command | null> {
+    const library = this.deps.gifs
+    if (library === undefined) return null
+    const request = parseGifRequest(utterance)
+    if (request === null) return null
+
+    if (request.kind === 'keep') {
+      library.keep()
+      this.deps.onNotice?.('')
+      return NOOP
+    }
+
+    // Nothing to change or shuffle before a search has run, so those phrases go
+    // back to being ordinary words rather than reporting a GIF failure.
+    if (request.kind !== 'search' && !library.browsing) return null
+
+    const id = imageTarget(context)
+    if (id === null) {
+      this.deps.onNotice?.('Add an image block first, then ask for a GIF.')
+      return NOOP
+    }
+
+    const response =
+      request.kind === 'search'
+        ? await library.search(request.query)
+        : request.kind === 'shuffle'
+          ? library.shuffle()
+          : library.next()
+
+    this.deps.onNotice?.(GIF_NOTICE[response.outcome])
+    if (response.gif === null) return NOOP
+    return { op: 'set', id, path: 'src', value: response.gif.url }
   }
 
   private narrow(raw: string, context: ParseContext): Command {
