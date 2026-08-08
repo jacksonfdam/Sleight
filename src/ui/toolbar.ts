@@ -42,6 +42,7 @@ export interface ToolbarOptions {
   readonly onMicToggle: (active: boolean) => void
   readonly onCameraToggle: (active: boolean) => void
   readonly onInsert: (type: BlockType) => void
+  readonly onDelete: () => void
   readonly onUndo: () => void
   readonly onRedo: () => void
   readonly onExport: () => void
@@ -86,6 +87,7 @@ export class Toolbar {
   private readonly camera: HTMLButtonElement | null = null
   private readonly notice: HTMLElement
   private readonly heard: HTMLElement
+  private readonly remove: HTMLButtonElement
   private readonly undo: HTMLButtonElement
   private readonly redo: HTMLButtonElement
   private readonly badge: HTMLElement
@@ -121,6 +123,11 @@ export class Toolbar {
       inserts.append(button)
     }
     spacer?.before(inserts)
+
+    this.remove = createAction('Delete', 'Delete the selected block')
+    this.remove.classList.add('sl-button--danger')
+    this.remove.addEventListener('click', options.onDelete)
+    spacer?.before(this.remove)
 
     this.undo = createAction('Undo', 'Undo the last change')
     this.undo.addEventListener('click', options.onUndo)
@@ -159,6 +166,11 @@ export class Toolbar {
   setHistory(canUndo: boolean, canRedo: boolean): void {
     this.undo.disabled = !canUndo
     this.redo.disabled = !canRedo
+  }
+
+  /** Delete is the one action with no meaning until something is selected. */
+  setSelection(hasSelection: boolean): void {
+    this.remove.disabled = !hasSelection
   }
 
   setCameraActive(active: boolean): void {

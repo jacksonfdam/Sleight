@@ -245,6 +245,10 @@ async function start(host: HTMLElement): Promise<void> {
       // and it is what the voice grammar's `it` will refer to next.
       bus.emit({ op: 'select', id: cmd.block.id }, 'pointer')
     },
+    onDelete: () => {
+      const id = store.getState().selectedId
+      if (id !== null) bus.emit({ op: 'remove', id }, 'pointer')
+    },
     onUndo: () => {
       bus.emit({ op: 'undo' }, 'pointer')
     },
@@ -257,8 +261,10 @@ async function start(host: HTMLElement): Promise<void> {
   })
   toolbar.setTier(parser.tier)
   toolbar.setHistory(store.getState().canUndo, store.getState().canRedo)
+  toolbar.setSelection(store.getState().selectedId !== null)
   store.subscribe(state => {
     toolbar.setHistory(state.canUndo, state.canRedo)
+    toolbar.setSelection(state.selectedId !== null)
   })
 }
 

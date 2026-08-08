@@ -55,6 +55,12 @@
   box-shadow: 0 0 0 3px var(--sl-hud-glow);
 }
 
+.sl-button--danger:hover:not(:disabled) {
+  color: var(--sl-danger);
+  border-color: currentcolor;
+  box-shadow: none;
+}
+
 .sl-button__dot {
   width: 8px;
   height: 8px;
