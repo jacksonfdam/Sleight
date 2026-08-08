@@ -96,7 +96,9 @@ async function start(host: HTMLElement): Promise<void> {
     onClear: () => {
       log.clear()
     },
-    origin: performance.now(),
+    // The bus stamps intents with `Date.now`, so the panel has to measure
+    // against the same clock or every row reads as decades of elapsed time.
+    origin: Date.now(),
   })
   log.subscribe(entries => {
     history.render(entries)
@@ -239,7 +241,7 @@ async function start(host: HTMLElement): Promise<void> {
       toolbar.setHeard(utterance, cmd.op !== 'noop')
       // An utterance that matched nothing never reaches the bus, so the log has
       // to be told about it here or the most diagnostic line would be missing.
-      if (cmd.op === 'noop') log.recordUnheard(utterance, performance.now())
+      if (cmd.op === 'noop') log.recordUnheard(utterance, Date.now())
     },
   })
 
