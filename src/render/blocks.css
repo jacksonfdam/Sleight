@@ -14,6 +14,20 @@
   padding: var(--sl-space-3);
   border-radius: var(--sl-radius-md);
   line-height: 1.3;
+  animation: sl-materialise 260ms ease-out;
+}
+
+/*
+ * Runs once per element, when the renderer first puts it in the document. A
+ * newly inserted block is otherwise indistinguishable from one that was always
+ * there, which matters most when the insert came from a spoken command and the
+ * eye has no pointer to follow to it.
+ */
+@keyframes sl-materialise {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
 }
 
 .sl-block--section {
@@ -87,9 +101,45 @@
   border-color: var(--sl-hover);
 }
 
+/*
+ * Corner marks while a block is under the cursor. They are on the hover state
+ * rather than the selected one because a selected block already carries eight
+ * resize handles at exactly these corners, and the two would collide.
+ */
+.sl-block.is-hovered::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--sl-hover), var(--sl-hover)) 0 0 / 14px 1px no-repeat,
+    linear-gradient(var(--sl-hover), var(--sl-hover)) 0 0 / 1px 14px no-repeat,
+    linear-gradient(var(--sl-hover), var(--sl-hover)) 100% 0 / 14px 1px no-repeat,
+    linear-gradient(var(--sl-hover), var(--sl-hover)) 100% 0 / 1px 14px no-repeat,
+    linear-gradient(var(--sl-hover), var(--sl-hover)) 0 100% / 14px 1px no-repeat,
+    linear-gradient(var(--sl-hover), var(--sl-hover)) 0 100% / 1px 14px no-repeat,
+    linear-gradient(var(--sl-hover), var(--sl-hover)) 100% 100% / 14px 1px no-repeat,
+    linear-gradient(var(--sl-hover), var(--sl-hover)) 100% 100% / 1px 14px no-repeat;
+  animation: sl-acquire 180ms ease-out;
+}
+
+@keyframes sl-acquire {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
 .sl-block.is-selected::after {
   inset: -2px;
   border: 2px solid var(--sl-select);
+  animation: sl-lock 2.4s ease-in-out infinite;
+}
+
+@keyframes sl-lock {
+  50% {
+    box-shadow: 0 0 0 4px var(--sl-select-soft);
+  }
 }
 
 .sl-handles {
@@ -155,4 +205,12 @@
   top: 50%;
   left: 0;
   cursor: ew-resize;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-block,
+  .sl-block.is-hovered::before,
+  .sl-block.is-selected::after {
+    animation: none;
+  }
 }
