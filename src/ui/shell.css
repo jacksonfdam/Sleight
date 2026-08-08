@@ -12,20 +12,70 @@
 
 .sl-toolbar {
   grid-area: toolbar;
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sl-space-2);
   padding: var(--sl-space-2) var(--sl-space-3);
-  background: var(--sl-surface-raised);
-  border-bottom: 1px solid var(--sl-border);
+  background: linear-gradient(180deg, var(--sl-surface-raised), var(--sl-surface));
+  border-bottom: 1px solid var(--sl-hud-line);
+}
+
+/*
+ * A light travelling along the underside of the toolbar. It is drawn on a
+ * pseudo-element rather than the toolbar's own border so that it repaints one
+ * strip rather than the whole bar, and so it disappears entirely under reduced
+ * motion without leaving a gap in the layout.
+ */
+.sl-toolbar::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--sl-hud-sweep), transparent);
+  background-size: 30% 100%;
+  background-repeat: no-repeat;
+  animation: sl-sweep 7s linear infinite;
+}
+
+@keyframes sl-sweep {
+  from {
+    background-position: -30% 0;
+  }
+
+  to {
+    background-position: 130% 0;
+  }
 }
 
 .sl-toolbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sl-space-2);
   margin: 0 var(--sl-space-3) 0 var(--sl-space-1);
   font-size: var(--sl-font-size-lg);
   font-weight: 650;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* A live indicator, so the chrome reads as an instrument rather than a title. */
+.sl-toolbar__brand::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: var(--sl-hud-ink);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px var(--sl-hud-glow);
+  animation: sl-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes sl-breathe {
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 0 7px transparent;
+  }
 }
 
 .sl-toolbar__spacer {
@@ -38,8 +88,36 @@
   overflow: auto;
   padding: var(--sl-space-5);
   background:
-    radial-gradient(circle at 1px 1px, var(--sl-border) 1px, transparent 0) 0 0 / 24px 24px,
+    linear-gradient(var(--sl-hud-grid) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, var(--sl-hud-grid) 1px, transparent 1px) 0 0 / 32px 32px,
+    radial-gradient(circle at 1px 1px, var(--sl-border) 1px, transparent 0) 0 0 / 32px 32px,
     var(--sl-surface-sunken);
+}
+
+/*
+ * A slow band crossing the stage. It animates `transform` only, so the browser
+ * composites it without repainting the grid or the document underneath it — the
+ * one property that can be animated during a drag without costing frames.
+ */
+.sl-stage::after {
+  content: '';
+  position: absolute;
+  inset: -160px 0 auto;
+  height: 160px;
+  background: linear-gradient(180deg, transparent, var(--sl-hud-glow), transparent);
+  pointer-events: none;
+  animation: sl-scan 11s ease-in-out infinite;
+}
+
+@keyframes sl-scan {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(calc(100vh + 160px));
+  }
 }
 
 .sl-stage__inner {
@@ -48,12 +126,33 @@
   margin: 0 auto;
 }
 
+/*
+ * Corner brackets around the page being edited. They sit on the wrapper rather
+ * than on the canvas itself, which clips its own overflow to keep blocks inside
+ * the page bounds and would cut them off.
+ */
+.sl-stage__inner::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--sl-hud-line), var(--sl-hud-line)) 0 0 / 18px 1px no-repeat,
+    linear-gradient(var(--sl-hud-line), var(--sl-hud-line)) 0 0 / 1px 18px no-repeat,
+    linear-gradient(var(--sl-hud-line), var(--sl-hud-line)) 100% 0 / 18px 1px no-repeat,
+    linear-gradient(var(--sl-hud-line), var(--sl-hud-line)) 100% 0 / 1px 18px no-repeat,
+    linear-gradient(var(--sl-hud-line), var(--sl-hud-line)) 0 100% / 18px 1px no-repeat,
+    linear-gradient(var(--sl-hud-line), var(--sl-hud-line)) 0 100% / 1px 18px no-repeat,
+    linear-gradient(var(--sl-hud-line), var(--sl-hud-line)) 100% 100% / 18px 1px no-repeat,
+    linear-gradient(var(--sl-hud-line), var(--sl-hud-line)) 100% 100% / 1px 18px no-repeat;
+}
+
 .sl-inspector {
   grid-area: inspector;
   overflow-y: auto;
   padding: var(--sl-space-4);
   background: var(--sl-surface-raised);
-  border-left: 1px solid var(--sl-border);
+  border-left: 1px solid var(--sl-hud-line);
 }
 
 .sl-status {
@@ -63,9 +162,11 @@
   gap: var(--sl-space-4);
   padding: var(--sl-space-2) var(--sl-space-3);
   color: var(--sl-text-muted);
+  font-family: var(--sl-font-mono);
   font-size: var(--sl-font-size-sm);
+  letter-spacing: 0.02em;
   background: var(--sl-surface-raised);
-  border-top: 1px solid var(--sl-border);
+  border-top: 1px solid var(--sl-hud-line);
 }
 
 @media (width <= 860px) {
@@ -127,5 +228,16 @@
 @media (prefers-reduced-motion: reduce) {
   .sl-camera {
     transition: none;
+  }
+
+  .sl-toolbar::after,
+  .sl-toolbar__brand::before,
+  .sl-stage::after {
+    animation: none;
+  }
+
+  /* A band frozen mid-stage would read as a rendering fault, so it is removed. */
+  .sl-stage::after {
+    display: none;
   }
 }
