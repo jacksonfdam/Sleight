@@ -1,0 +1,81 @@
+.sl-canvas {
+  position: relative;
+  background: var(--sl-canvas);
+  border-radius: var(--sl-radius-md);
+  box-shadow: var(--sl-shadow);
+  overflow: hidden;
+}
+
+.sl-block {
+  position: absolute;
+  display: grid;
+  align-content: center;
+  justify-items: stretch;
+  padding: var(--sl-space-3);
+  border-radius: var(--sl-radius-md);
+  line-height: 1.3;
+}
+
+.sl-block--section {
+  background: var(--sl-surface-raised);
+  border: 1px dashed var(--sl-border-strong);
+  align-content: start;
+}
+
+.sl-block--hero {
+  background: var(--sl-surface-sunken);
+  border-radius: var(--sl-radius-lg);
+}
+
+.sl-block--image {
+  padding: 0;
+  overflow: hidden;
+  background: var(--sl-surface-sunken);
+  border: 1px solid var(--sl-border);
+}
+
+.sl-block__text {
+  display: block;
+  width: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sl-block__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sl-block__placeholder {
+  display: grid;
+  place-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--sl-text-muted);
+  font-family: var(--sl-font-ui);
+  font-size: var(--sl-font-size-sm);
+}
+
+/*
+ * Hover and selection are drawn as pseudo-elements on the block itself so their
+ * geometry follows layout without a second measurement pass.
+ */
+.sl-block::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.sl-block.is-hovered::after {
+  border-color: var(--sl-hover);
+}
+
+.sl-block.is-selected::after {
+  inset: -2px;
+  border: 2px solid var(--sl-select);
+}
