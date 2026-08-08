@@ -44,3 +44,58 @@ export interface DocumentState {
   readonly children: Readonly<Record<string, readonly string[]>>
   readonly parents: Readonly<Record<string, string>>
 }
+
+/**
+ * A `set` per property path, so that the compiler rejects a value whose type does
+ * not match its path — `{ path: 'align', value: 12 }` will not build.
+ */
+export type SetCommand = {
+  [K in PropPath]: {
+    readonly op: 'set'
+    readonly id: string
+    readonly path: K
+    readonly value: BlockProps[K]
+  }
+}[PropPath]
+
+/** Commands that mutate the document. These are the reducer's entire input. */
+export type DocCommand =
+  | SetCommand
+  | {
+      readonly op: 'nudge'
+      readonly id: string
+      readonly path: NumericPath
+      readonly delta: number
+    }
+  | {
+      readonly op: 'insert'
+      readonly parent: string
+      readonly block: Block
+      readonly index: number
+    }
+  | { readonly op: 'move'; readonly id: string; readonly parent: string; readonly index: number }
+  | { readonly op: 'remove'; readonly id: string }
+  | { readonly op: 'noop' }
+
+/**
+ * Commands that change editor shell state rather than the document. They travel
+ * the same bus so that an adapter never needs a second channel, but they are not
+ * undoable and never reach the reducer.
+ */
+export type ShellCommand =
+  | { readonly op: 'select'; readonly id: string | null }
+  | { readonly op: 'hover'; readonly id: string | null }
+  | { readonly op: 'undo' }
+  | { readonly op: 'redo' }
+
+export type Command = DocCommand | ShellCommand
+
+export type IntentSource = 'pointer' | 'hand' | 'voice'
+
+export interface Intent {
+  readonly cmd: Command
+  readonly source: IntentSource
+  /** Groups a continuous gesture into a single undo step. */
+  readonly txn?: string
+  readonly ts: number
+}
