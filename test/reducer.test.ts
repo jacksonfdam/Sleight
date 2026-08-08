@@ -215,3 +215,64 @@ describe('text styles', () => {
     expect(props?.italic).toBe(false)
   })
 })
+
+describe('centring', () => {
+  const canvas = (): ReturnType<typeof seed> => seed()
+
+  it('centres on the axis it is asked for', () => {
+    const doc = reduce(canvas(), { op: 'center', id: 'hero', axis: 'x' })
+    const root = doc.blocks[ROOT_ID]?.props
+    const hero = doc.blocks['hero']?.props
+    expect(hero?.x).toBe(Math.round(((root?.w ?? 0) - (hero?.w ?? 0)) / 2))
+    expect(hero?.y).toBe(canvas().blocks['hero']?.props.y)
+  })
+
+  it('centres on both axes', () => {
+    const doc = reduce(canvas(), { op: 'center', id: 'hero', axis: 'both' })
+    const root = doc.blocks[ROOT_ID]?.props
+    const hero = doc.blocks['hero']?.props
+    expect(hero?.x).toBe(Math.round(((root?.w ?? 0) - (hero?.w ?? 0)) / 2))
+    expect(hero?.y).toBe(Math.round(((root?.h ?? 0) - (hero?.h ?? 0)) / 2))
+  })
+
+  it('refuses the root and an unknown block', () => {
+    const doc = canvas()
+    expect(reduce(doc, { op: 'center', id: ROOT_ID, axis: 'both' })).toBe(doc)
+    expect(reduce(doc, { op: 'center', id: 'ghost', axis: 'both' })).toBe(doc)
+  })
+})
+
+describe('scaling', () => {
+  it('multiplies the box and keeps the centre still', () => {
+    const before = seed().blocks['hero']?.props
+    const doc = reduce(seed(), { op: 'scale', id: 'hero', factor: 2, of: 'box' })
+    const after = doc.blocks['hero']?.props
+    expect(after?.w).toBe((before?.w ?? 0) * 2)
+    expect(after?.h).toBe((before?.h ?? 0) * 2)
+    expect((after?.x ?? 0) + (after?.w ?? 0) / 2).toBeCloseTo(
+      (before?.x ?? 0) + (before?.w ?? 0) / 2,
+      0,
+    )
+  })
+
+  it('multiplies the type without touching the box', () => {
+    const before = seed().blocks['hero']?.props
+    const doc = reduce(seed(), { op: 'scale', id: 'hero', factor: 2, of: 'font' })
+    const after = doc.blocks['hero']?.props
+    expect(after?.fontSize).toBe((before?.fontSize ?? 0) * 2)
+    expect(after?.w).toBe(before?.w)
+  })
+
+  it('shrinks on a factor below one', () => {
+    const before = seed().blocks['hero']?.props
+    const doc = reduce(seed(), { op: 'scale', id: 'hero', factor: 0.5, of: 'box' })
+    expect(doc.blocks['hero']?.props.w).toBe(Math.round((before?.w ?? 0) / 2))
+  })
+
+  it('refuses a factor that is not a positive number', () => {
+    const doc = seed()
+    expect(reduce(doc, { op: 'scale', id: 'hero', factor: 0, of: 'box' })).toBe(doc)
+    expect(reduce(doc, { op: 'scale', id: 'hero', factor: -2, of: 'box' })).toBe(doc)
+    expect(reduce(doc, { op: 'scale', id: 'hero', factor: Number.NaN, of: 'box' })).toBe(doc)
+  })
+})
