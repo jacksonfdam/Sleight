@@ -204,11 +204,31 @@ progress ring giving continuous feedback. Below 0.6 tracking confidence the
 cursor is hidden rather than drawn, because a cursor that wanders on its own is
 worse than no cursor.
 
-A pinch closed over a resize handle of the selected block grabs that handle
-instead of the block, so the hand has the same two gestures the mouse does:
-pinch anywhere on a block to move it, pinch on a handle to resize it. Both go
-through the shared handle maths, so a north or west handle moves the origin as
-it grows the block in either mode.
+### Gestures
+
+| Gesture                                      | Effect                                |
+| -------------------------------------------- | ------------------------------------- |
+| One hand pinched on a block                  | Moves it, the way a pointer drag does |
+| One hand pinched on a resize handle          | Resizes from that edge or corner      |
+| Both hands pinched, moving apart or together | Scales the block about its centre     |
+| Both hands pinched, travelling together      | Pans the block                        |
+| One hand held still for 600ms                | Selects, as a dwell click             |
+
+A pinch closed over a resize handle grabs that handle instead of the block, and
+goes through the same handle maths the mouse uses, so a north or west handle
+moves the origin as it grows the block in either mode.
+
+Two pinched hands are the tablet gesture: the distance between them sets the
+size and their midpoint sets the position, both at once. The scale is written as
+absolute values computed from the geometry captured when the gesture started,
+not as accumulated per-frame deltas — a dropped frame then costs nothing, where
+accumulating would leave the block a little further out of place after every
+gesture. The whole gesture is one transaction, so it is one undo step.
+
+Both hands are tracked with a One Euro filter each, keyed by handedness. Sharing
+one filter would make each hand yank the other's smoothed position every time
+they swap places in the model's result list, which happens constantly when both
+are in frame.
 
 While the camera is on, the feed is drawn behind the canvas and the page turns
 translucent over it, so the layout appears to float in the room in front of you.
@@ -298,6 +318,9 @@ and no secrets are required, because all inference is on device.
   add a block from the interface; the starter document is the starting point.
 - No collaborative editing. The lock table resolves contention between input
   sources on one machine, not between people.
+- No rotation. The two-hand gesture scales and pans but does not rotate, because
+  there is no rotation property in the document model — adding one means touching
+  the property union, the reducer, the renderer, and the export together.
 - No responsive breakpoints. The canvas is a single fixed-size surface and the
   export is absolutely positioned at that size.
 - Hand tracking degrades in low light and near the frame edges. The usable middle
