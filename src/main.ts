@@ -7,7 +7,7 @@ import { PointerAdapter } from './adapters/pointer'
 import { VoiceAdapter } from './adapters/voice'
 import { IntentBus } from './core/bus'
 import { starterDocument } from './core/document'
-import { saveDocument } from './core/persistence'
+import { loadDocument, saveDocument } from './core/persistence'
 import { Store } from './core/store'
 import { exportHtml } from './render/export'
 import { Overlay, computeGuides } from './render/overlay'
@@ -75,7 +75,7 @@ function buildShell(host: HTMLElement): Shell {
 
 async function start(host: HTMLElement): Promise<void> {
   const shell = buildShell(host)
-  const store = new Store(starterDocument())
+  const store = new Store(loadDocument() ?? starterDocument())
   const bus = new IntentBus()
   const renderer = new Renderer(shell.canvasHost)
   const overlay = new Overlay(shell.canvasHost)
