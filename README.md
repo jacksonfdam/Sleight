@@ -15,7 +15,8 @@ the URL goes here once the project is imported.
 The editor in dark and light schemes. Every surface resolves through the token
 file, and the document canvas deliberately stays on a fixed paper surface in both
 — block colours are content that ships in the export, so they have to stay
-legible against the background the exported page will use.
+legible against the background the exported page will use. The instrument chrome
+around it is the one place the two schemes are free to diverge.
 
 ![The editor in dark mode with a block selected](docs/screenshots/editor-dark.png)
 
