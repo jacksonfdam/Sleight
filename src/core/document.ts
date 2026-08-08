@@ -192,30 +192,47 @@ export function nextBlockId(doc: DocumentState, type: BlockType): string {
   return `${type}-${String(n)}`
 }
 
+/** How far each block of a cascade is offset from the one before it. */
+const CASCADE_STEP = 20
+const CASCADE_LENGTH = 6
+
 /**
- * Stacks a new block under the lowest one already on the canvas. Placing every
- * insert at a fixed origin would bury each new block under the last, which is
- * exactly the case where the block cannot be grabbed to move it off the pile.
+ * The first free spot for a block of this size.
+ *
+ * Blocks stack down a column, skipping past anything whose horizontal span they
+ * would land on. When a column runs out of height the search moves to the next
+ * one, and when the canvas has no clear space left the block joins a cascade
+ * from the top corner. The cascade matters: a block dropped at a clamped
+ * position sits half over its neighbour and reads as a layout fault, where an
+ * offset stack reads as what it is, a canvas with no room left.
  */
-function nextSlot(doc: DocumentState, height: number): { x: number; y: number } {
-  let bottom = 0
-  for (const id of getChildren(doc, doc.rootId)) {
-    const block = getBlock(doc, id)
-    if (block !== undefined) bottom = Math.max(bottom, block.props.y + block.props.h)
+function nextSlot(doc: DocumentState, width: number, height: number): { x: number; y: number } {
+  const canvas = getBlock(doc, doc.rootId)?.props
+  const limitX = Math.max(STACK_MARGIN, (canvas?.w ?? 0) - width - STACK_MARGIN)
+  const limitY = Math.max(STACK_MARGIN, (canvas?.h ?? 0) - height - STACK_MARGIN)
+  const siblings = getChildren(doc, doc.rootId)
+
+  for (let x = STACK_MARGIN; x <= limitX; x += width + STACK_GAP) {
+    let y = STACK_MARGIN
+    for (const id of siblings) {
+      const props = getBlock(doc, id)?.props
+      if (props === undefined) continue
+      // Only a block that shares horizontal space pushes the stack downwards.
+      if (props.x < x + width && x < props.x + props.w) {
+        y = Math.max(y, props.y + props.h + STACK_GAP)
+      }
+    }
+    if (y <= limitY) return { x, y }
   }
 
-  const y = bottom === 0 ? STACK_MARGIN : bottom + STACK_GAP
-  const canvasHeight = getBlock(doc, doc.rootId)?.props.h ?? 0
-  // Past the bottom edge the block would be off screen with no way to reach it,
-  // so the stack folds back to the last row that still fits.
-  const limit = Math.max(STACK_MARGIN, canvasHeight - height - STACK_GAP)
-  return { x: STACK_MARGIN, y: Math.min(y, limit) }
+  const step = (siblings.length % CASCADE_LENGTH) * CASCADE_STEP
+  return { x: Math.min(limitX, STACK_MARGIN + step), y: Math.min(limitY, STACK_MARGIN + step) }
 }
 
 /** A ready-to-emit insert for a new block of `type`, appended to the canvas. */
 export function insertCommand(doc: DocumentState, type: BlockType): InsertCommand {
   const size = defaultProps(type)
-  const slot = nextSlot(doc, size.h)
+  const slot = nextSlot(doc, size.w, size.h)
   const block = createBlock(nextBlockId(doc, type), type, TYPE_LABELS[type], slot)
   return { op: 'insert', parent: doc.rootId, block, index: getChildren(doc, doc.rootId).length }
 }
