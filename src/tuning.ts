@@ -89,3 +89,12 @@ export const DWELL_RADIUS_PX = 20
  * more canvas, at the cost of precision.
  */
 export const HAND_ACTIVE_MARGIN = 0.15
+
+/**
+ * Hover damping, applied to the hand only. A smoothed hand point grazes blocks
+ * it is merely passing over, so a candidate must persist before it is committed,
+ * and the point must clear the current block's edge before hover is dropped.
+ * The mouse is deliberately exempt: the same debounce makes a mouse feel broken.
+ */
+export const HOVER_DWELL_MS = 120
+export const HOVER_RELEASE_PX = 8

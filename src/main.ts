@@ -2,6 +2,7 @@ import './ui/tokens.css'
 import './ui/shell.css'
 import type { HandStatus } from './adapters/hand'
 import { HandAdapter } from './adapters/hand'
+import { HoverDamper } from './adapters/hover'
 import { PointerAdapter } from './adapters/pointer'
 import { VoiceAdapter } from './adapters/voice'
 import { IntentBus } from './core/bus'
@@ -81,6 +82,7 @@ async function start(host: HTMLElement): Promise<void> {
   })
 
   let hovered: string | null = null
+  const damper = new HoverDamper()
 
   const hand = new HandAdapter({
     bus,
@@ -106,11 +108,12 @@ async function start(host: HTMLElement): Promise<void> {
     if (root) overlay.resize(root.props.w, root.props.h)
 
     const cursor = hand.cursor
-    if (cursor.visible) hovered = renderer.hitTest(cursor.x, cursor.y)
-    else hovered = pointerX < 0 ? null : renderer.hitTest(pointerX, pointerY)
-    if (hovered !== state.hoveredId) {
-      bus.emit({ op: 'hover', id: hovered }, cursor.visible ? 'hand' : 'pointer')
-    }
+    const source = cursor.visible ? 'hand' : 'pointer'
+    const x = cursor.visible ? cursor.x : pointerX
+    const y = cursor.visible ? cursor.y : pointerY
+    const hit = x < 0 ? null : renderer.hitTest(x, y)
+    hovered = damper.resolve({ id: hit, x, y, source, now: performance.now() })
+    if (hovered !== state.hoveredId) bus.emit({ op: 'hover', id: hovered }, source)
 
     overlay.clear()
     overlay.drawGuides(computeGuides(state.doc, bus.lockedBlock('geom')))
