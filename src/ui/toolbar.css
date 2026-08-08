@@ -11,6 +11,26 @@
   cursor: pointer;
 }
 
+.sl-button--compact {
+  padding: 6px 8px;
+  font-size: var(--sl-font-size-sm);
+  font-family: var(--sl-font-mono);
+}
+
+.sl-group {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--sl-surface-sunken);
+  border: 1px solid var(--sl-border);
+  border-radius: var(--sl-radius-sm);
+}
+
+.sl-group .sl-button {
+  border-color: transparent;
+  background: transparent;
+}
+
 .sl-button:hover:not(:disabled) {
   border-color: var(--sl-border-strong);
 }

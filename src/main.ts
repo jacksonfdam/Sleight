@@ -6,7 +6,7 @@ import { HoverDamper } from './adapters/hover'
 import { PointerAdapter } from './adapters/pointer'
 import { VoiceAdapter } from './adapters/voice'
 import { IntentBus } from './core/bus'
-import { starterDocument } from './core/document'
+import { insertCommand, starterDocument } from './core/document'
 import { loadDocument, saveDocument } from './core/persistence'
 import { Store } from './core/store'
 import { exportHtml } from './render/export'
@@ -219,6 +219,13 @@ async function start(host: HTMLElement): Promise<void> {
       if (active) void hand.start()
       else hand.stop()
       toolbar.setCameraActive(hand.running)
+    },
+    onInsert: type => {
+      const cmd = insertCommand(store.getState().doc, type)
+      bus.emit(cmd, 'pointer')
+      // Selecting the new block is what makes the inspector useful immediately,
+      // and it is what the voice grammar's `it` will refer to next.
+      bus.emit({ op: 'select', id: cmd.block.id }, 'pointer')
     },
     onUndo: () => {
       bus.emit({ op: 'undo' }, 'pointer')

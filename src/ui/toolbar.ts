@@ -1,5 +1,19 @@
 import './toolbar.css'
 import type { CapabilityTier } from '../language/parser'
+import { TYPE_LABELS } from '../core/document'
+import type { BlockType } from '../core/types'
+
+/**
+ * The block types offered as buttons. Every other type is still reachable by
+ * voice; these are the ones worth a permanent seat in the toolbar.
+ */
+const INSERTS: readonly { readonly type: BlockType; readonly label: string }[] = [
+  { type: 'h1', label: 'H1' },
+  { type: 'h2', label: 'H2' },
+  { type: 'h3', label: 'H3' },
+  { type: 'h4', label: 'H4' },
+  { type: 'paragraph', label: 'Text' },
+]
 
 const TIERS: Record<CapabilityTier, { readonly badge: string; readonly detail: string }> = {
   full: {
@@ -26,9 +40,19 @@ export interface ToolbarOptions {
   readonly cameraSupported: boolean
   readonly onMicToggle: (active: boolean) => void
   readonly onCameraToggle: (active: boolean) => void
+  readonly onInsert: (type: BlockType) => void
   readonly onUndo: () => void
   readonly onRedo: () => void
   readonly onExport: () => void
+}
+
+/** A labelled cluster, so the toolbar reads as groups rather than a button row. */
+function createGroup(label: string): HTMLElement {
+  const group = document.createElement('div')
+  group.className = 'sl-group'
+  group.setAttribute('role', 'group')
+  group.setAttribute('aria-label', label)
+  return group
 }
 
 function createAction(label: string, description: string): HTMLButtonElement {
@@ -78,6 +102,17 @@ export class Toolbar {
     this.notice = document.createElement('span')
     this.notice.className = 'sl-notice'
     options.statusHost.append(this.notice)
+
+    const inserts = createGroup('Add a block')
+    for (const entry of INSERTS) {
+      const button = createAction(entry.label, `Add a ${TYPE_LABELS[entry.type].toLowerCase()}`)
+      button.classList.add('sl-button--compact')
+      button.addEventListener('click', () => {
+        options.onInsert(entry.type)
+      })
+      inserts.append(button)
+    }
+    spacer?.before(inserts)
 
     this.undo = createAction('Undo', 'Undo the last change')
     this.undo.addEventListener('click', options.onUndo)
