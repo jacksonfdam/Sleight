@@ -1,7 +1,14 @@
 import type { IntentBus } from '../core/bus'
 import { transactionId } from '../core/bus'
 import type { HandRequest, HandResponse } from '../vision/hand.worker'
-import { HAND_ACTIVE_MARGIN, HAND_CONFIDENCE_MIN, PINCH_CLOSE, PINCH_OPEN } from '../tuning'
+import {
+  DWELL_MS,
+  DWELL_RADIUS_PX,
+  HAND_ACTIVE_MARGIN,
+  HAND_CONFIDENCE_MIN,
+  PINCH_CLOSE,
+  PINCH_OPEN,
+} from '../tuning'
 
 export interface HandCursor {
   /** Client coordinates, so the same value drives hit testing and the overlay. */
@@ -9,6 +16,8 @@ export interface HandCursor {
   readonly y: number
   readonly visible: boolean
   readonly pinching: boolean
+  /** Progress towards a dwell click, 0 to 1. */
+  readonly dwell: number
 }
 
 export type HandStatus = 'off' | 'starting' | 'running' | 'denied' | 'failed'
@@ -24,7 +33,7 @@ export interface HandAdapterOptions {
   readonly onStatus?: (status: HandStatus) => void
 }
 
-const HIDDEN: HandCursor = { x: 0, y: 0, visible: false, pinching: false }
+const HIDDEN: HandCursor = { x: 0, y: 0, visible: false, pinching: false, dwell: 0 }
 
 function stretch(value: number): number {
   const span = 1 - HAND_ACTIVE_MARGIN * 2
@@ -50,6 +59,10 @@ export class HandAdapter {
   private dragId: string | null = null
   private lastX = 0
   private lastY = 0
+  private dwellX = 0
+  private dwellY = 0
+  private dwellSince = 0
+  private dwellFired = false
 
   constructor(options: HandAdapterOptions) {
     this.options = options
@@ -167,11 +180,39 @@ export class HandAdapter {
 
     // Hysteresis: close at the tighter threshold, release only at the looser one.
     const closed = this.pinching ? pinch < PINCH_OPEN : pinch < PINCH_CLOSE
-    this.current = { x, y, visible: true, pinching: closed }
+    const dwell = closed ? this.resetDwell(x, y) : this.trackDwell(x, y)
+    this.current = { x, y, visible: true, pinching: closed, dwell }
 
     if (closed && !this.pinching) this.beginPinch(x, y)
     else if (!closed && this.pinching) this.releasePinch()
     else if (closed) this.dragTo(x, y)
+  }
+
+  /**
+   * Holding still selects, for anyone who cannot hold a pinch comfortably. The
+   * progress ring on the overlay is what makes it usable: without continuous
+   * feedback a dwell target is indistinguishable from an unresponsive one.
+   */
+  private trackDwell(x: number, y: number): number {
+    const now = performance.now()
+    if (Math.hypot(x - this.dwellX, y - this.dwellY) > DWELL_RADIUS_PX) {
+      return this.resetDwell(x, y)
+    }
+
+    const progress = Math.min(1, (now - this.dwellSince) / DWELL_MS)
+    if (progress >= 1 && !this.dwellFired) {
+      this.dwellFired = true
+      this.options.bus.emit({ op: 'select', id: this.options.getHovered() }, 'hand')
+    }
+    return progress
+  }
+
+  private resetDwell(x: number, y: number): number {
+    this.dwellX = x
+    this.dwellY = y
+    this.dwellSince = performance.now()
+    this.dwellFired = false
+    return 0
   }
 
   /** A pinch is the hand equivalent of pointer down: it selects and grabs. */
