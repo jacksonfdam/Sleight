@@ -35,6 +35,18 @@ describe('reading a gif phrase', () => {
     expect(parseGifRequest('a gif of heavy rain')).toEqual({ kind: 'search', query: 'heavy rain' })
   })
 
+  // What the recogniser actually returns. "gift" is the common one.
+  it('accepts the words gif is misheard as', () => {
+    expect(parseGifRequest('find a gift for a cat')).toEqual({ kind: 'search', query: 'cat' })
+    expect(parseGifRequest('find a jif of a cat')).toEqual({ kind: 'search', query: 'cat' })
+    expect(parseGifRequest('show me a gift of heavy rain')).toEqual({
+      kind: 'search',
+      query: 'heavy rain',
+    })
+    expect(parseGifRequest('next gift')).toEqual({ kind: 'change' })
+    expect(parseGifRequest('random gift')).toEqual({ kind: 'shuffle' })
+  })
+
   it('reads the browse verbs', () => {
     expect(parseGifRequest('change it')).toEqual({ kind: 'change' })
     expect(parseGifRequest('another one')).toEqual({ kind: 'change' })
