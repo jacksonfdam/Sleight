@@ -1,6 +1,8 @@
 import type { IntentBus } from '../core/bus'
 import { transactionId } from '../core/bus'
+import type { HandleName } from '../render/renderer'
 import type { HandRequest, HandResponse } from '../vision/hand.worker'
+import { resizeNudges } from './resize'
 import {
   DWELL_MS,
   DWELL_RADIUS_PX,
@@ -41,6 +43,8 @@ export interface HandAdapterOptions {
   readonly modelPath: string
   /** Supplied by the frame loop, which already hit tests once per frame. */
   readonly getHovered: () => string | null
+  /** The resize handle under the cursor, from the same per-frame probe. */
+  readonly getHandle: () => HandleName | null
   readonly onStatus?: (status: HandStatus) => void
 }
 
@@ -68,6 +72,7 @@ export class HandAdapter {
   private pinching = false
   private txn: string | null = null
   private dragId: string | null = null
+  private dragHandle: HandleName | null = null
   private lastX = 0
   private lastY = 0
   private dwellX = 0
@@ -226,15 +231,23 @@ export class HandAdapter {
     return 0
   }
 
-  /** A pinch is the hand equivalent of pointer down: it selects and grabs. */
+  /**
+   * A pinch is the hand equivalent of pointer down. Closing it over a resize
+   * handle of the selected block grabs that handle; anywhere else it grabs the
+   * block itself. Same two gestures the mouse has, same intents downstream.
+   */
   private beginPinch(x: number, y: number): void {
     this.pinching = true
     this.lastX = x
     this.lastY = y
+
+    const handle = this.options.getHandle()
     const target = this.options.getHovered()
-    this.options.bus.emit({ op: 'select', id: target }, 'hand')
+    if (handle === null) this.options.bus.emit({ op: 'select', id: target }, 'hand')
+
+    this.dragHandle = handle
     this.dragId = target
-    this.txn = target === null ? null : transactionId('hand-move')
+    this.txn = target === null ? null : transactionId(handle === null ? 'hand-move' : 'hand-resize')
   }
 
   private dragTo(x: number, y: number): void {
@@ -248,6 +261,14 @@ export class HandAdapter {
     this.lastX += dx
     this.lastY += dy
 
+    const handle = this.dragHandle
+    if (handle !== null) {
+      for (const nudge of resizeNudges(handle, dx, dy)) {
+        this.options.bus.emit({ op: 'nudge', id, ...nudge }, 'hand', txn)
+      }
+      return
+    }
+
     this.options.bus.emit({ op: 'nudge', id, path: 'x', delta: dx }, 'hand', txn)
     this.options.bus.emit({ op: 'nudge', id, path: 'y', delta: dy }, 'hand', txn)
   }
@@ -256,6 +277,7 @@ export class HandAdapter {
     if (this.txn !== null) this.options.bus.endTransaction(this.txn)
     this.txn = null
     this.dragId = null
+    this.dragHandle = null
     this.pinching = false
   }
 }
