@@ -2,20 +2,9 @@ import type { IntentBus } from '../core/bus'
 import { transactionId } from '../core/bus'
 import type { HandleName } from '../render/renderer'
 import { blockIdAt, handleAt, textNodeFor } from '../render/renderer'
+import { resizeNudges } from './resize'
 
 const EDITABLE_TYPES = new Set(['text', 'hero'])
-
-/** Which edges a handle drives, as multipliers on the pointer delta. */
-const HANDLE_AXES: Record<HandleName, { readonly ew: -1 | 0 | 1; readonly ns: -1 | 0 | 1 }> = {
-  nw: { ew: -1, ns: -1 },
-  n: { ew: 0, ns: -1 },
-  ne: { ew: 1, ns: -1 },
-  e: { ew: 1, ns: 0 },
-  se: { ew: 1, ns: 1 },
-  s: { ew: 0, ns: 1 },
-  sw: { ew: -1, ns: 1 },
-  w: { ew: -1, ns: 0 },
-}
 
 export interface PointerAdapterOptions {
   readonly surface: HTMLElement
@@ -165,28 +154,14 @@ export class PointerAdapter {
     this.resize(drag, drag.handle, dx, dy)
   }
 
-  /**
-   * A west or north handle grows the block by moving its origin, so it writes
-   * both an origin and a size delta. Both land in the same transaction and so
-   * collapse into one undo step.
-   */
+  /** All nudges from one handle drag share a transaction, so it is one undo step. */
   private resize(drag: DragSession, handle: HandleName, dx: number, dy: number): void {
-    const axes = HANDLE_AXES[handle]
-    if (axes.ew === 1) {
-      this.nudge(drag, 'w', dx)
-    } else if (axes.ew === -1) {
-      this.nudge(drag, 'x', dx)
-      this.nudge(drag, 'w', -dx)
-    }
-    if (axes.ns === 1) {
-      this.nudge(drag, 'h', dy)
-    } else if (axes.ns === -1) {
-      this.nudge(drag, 'y', dy)
-      this.nudge(drag, 'h', -dy)
+    for (const nudge of resizeNudges(handle, dx, dy)) {
+      this.bus.emit({ op: 'nudge', id: drag.id, ...nudge }, 'pointer', drag.txn)
     }
   }
 
-  private nudge(drag: DragSession, path: 'x' | 'y' | 'w' | 'h', delta: number): void {
+  private nudge(drag: DragSession, path: 'x' | 'y', delta: number): void {
     if (delta === 0) return
     this.bus.emit({ op: 'nudge', id: drag.id, path, delta }, 'pointer', drag.txn)
   }
