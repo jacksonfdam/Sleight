@@ -17,6 +17,35 @@ export function blockIdAt(node: EventTarget | Node | null): string | null {
   return owner?.getAttribute(BLOCK_ATTR) ?? null
 }
 
+export const HANDLE_ATTR = 'data-handle'
+
+export const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const
+
+export type HandleName = (typeof HANDLES)[number]
+
+function isHandleName(value: string): value is HandleName {
+  return (HANDLES as readonly string[]).includes(value)
+}
+
+/** The resize handle under a node, or null when the node is not a handle. */
+export function handleAt(node: EventTarget | Node | null): HandleName | null {
+  if (!(node instanceof Element)) return null
+  const name = node.closest(`[${HANDLE_ATTR}]`)?.getAttribute(HANDLE_ATTR)
+  return name !== null && name !== undefined && isHandleName(name) ? name : null
+}
+
+function createHandles(): HTMLElement {
+  const group = document.createElement('div')
+  group.className = 'sl-handles'
+  for (const name of HANDLES) {
+    const handle = document.createElement('div')
+    handle.className = 'sl-handle'
+    handle.setAttribute(HANDLE_ATTR, name)
+    group.append(handle)
+  }
+  return group
+}
+
 function createElement(block: Block): HTMLElement {
   const el = document.createElement('div')
   el.className = `sl-block sl-block--${block.type}`
@@ -76,6 +105,7 @@ export class Renderer {
   private readonly elements = new Map<string, HTMLElement>()
   private readonly host: HTMLElement
   private prev: EditorState | null = null
+  private handles: HTMLElement | null = null
 
   constructor(host: HTMLElement) {
     this.host = host
@@ -167,5 +197,20 @@ export class Renderer {
       el.classList.toggle('is-selected', id === state.selectedId)
       el.classList.toggle('is-hovered', id === state.hoveredId && id !== state.selectedId)
     }
+    this.seatHandles(state.selectedId)
+  }
+
+  /**
+   * One handle group is moved between blocks rather than built per selection, so
+   * the handles inherit the selected block's box without any measurement.
+   */
+  private seatHandles(selectedId: string | null): void {
+    this.handles ??= createHandles()
+    const host = selectedId === null ? null : this.elements.get(selectedId)
+    if (host === undefined || host === null) {
+      this.handles.remove()
+      return
+    }
+    host.append(this.handles)
   }
 }

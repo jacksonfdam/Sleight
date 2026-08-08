@@ -79,3 +79,68 @@
   inset: -2px;
   border: 2px solid var(--sl-select);
 }
+
+.sl-handles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sl-handle {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  margin: -6px 0 0 -6px;
+  background: var(--sl-surface-raised);
+  border: 2px solid var(--sl-select);
+  border-radius: 2px;
+  pointer-events: auto;
+}
+
+.sl-handle[data-handle='nw'] {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.sl-handle[data-handle='n'] {
+  top: 0;
+  left: 50%;
+  cursor: ns-resize;
+}
+
+.sl-handle[data-handle='ne'] {
+  top: 0;
+  left: 100%;
+  cursor: nesw-resize;
+}
+
+.sl-handle[data-handle='e'] {
+  top: 50%;
+  left: 100%;
+  cursor: ew-resize;
+}
+
+.sl-handle[data-handle='se'] {
+  top: 100%;
+  left: 100%;
+  cursor: nwse-resize;
+}
+
+.sl-handle[data-handle='s'] {
+  top: 100%;
+  left: 50%;
+  cursor: ns-resize;
+}
+
+.sl-handle[data-handle='sw'] {
+  top: 100%;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.sl-handle[data-handle='w'] {
+  top: 50%;
+  left: 0;
+  cursor: ew-resize;
+}
