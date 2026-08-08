@@ -74,14 +74,16 @@ const SELF = /^(?:it|this|that|current|selected|selection|this one|the current b
 const RELATIVE = /^(?<word>next|previous|prior|last|first)(?: block| one| element)?$/
 
 function normalise(phrase: string): string {
-  return phrase
-    .toLowerCase()
-    .replace(/[.,!?;:]/g, ' ')
-    // A possessive is how the block is named out loud in a property command —
-    // "the hero's colour" points at the same block as "the hero".
-    .replace(/'s\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return (
+    phrase
+      .toLowerCase()
+      .replace(/[.,!?;:]/g, ' ')
+      // A possessive is how the block is named out loud in a property command —
+      // "the hero's colour" points at the same block as "the hero".
+      .replace(/'s\b/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  )
 }
 
 function stripArticle(phrase: string): string {
