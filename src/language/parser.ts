@@ -1,6 +1,7 @@
 import { isAlign } from '../core/document'
 import type { Align, Command, NumericPath, PropPath } from '../core/types'
 import type { ParseContext } from './grammar'
+import { parseGrammar } from './grammar'
 import { PromptSession } from './prompt'
 import { isSpeechSupported } from './speech'
 
@@ -153,13 +154,24 @@ export class CommandParser {
     return this.session === null ? 'grammar' : 'full'
   }
 
+  /**
+   * The grammar is not a degraded path, it is the floor. The model runs first
+   * when it exists, and every way it can fail — absent, timed out, malformed
+   * JSON, a command outside the vocabulary — lands on the same deterministic
+   * parse rather than on an error.
+   */
   async parse(utterance: string): Promise<Command> {
     const context = this.deps.getContext()
-    if (this.session === null) return NOOP
+    if (this.session === null) return parseGrammar(utterance, context)
 
     const raw = await this.session.run(buildPrompt(utterance, context, this.deps.getLockedKeys()))
-    if (raw === null) return NOOP
+    if (raw === null) return parseGrammar(utterance, context)
 
+    const parsed = this.narrow(raw, context)
+    return parsed.op === 'noop' ? parseGrammar(utterance, context) : parsed
+  }
+
+  private narrow(raw: string, context: ParseContext): Command {
     try {
       return validateCommand(JSON.parse(stripFences(raw)), context)
     } catch {
