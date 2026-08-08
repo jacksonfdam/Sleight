@@ -45,7 +45,10 @@ function post(message: HandResponse): void {
 }
 
 async function init(request: HandInitRequest): Promise<void> {
-  const fileset = await FilesetResolver.forVisionTasks(request.wasmPath)
+  // The second argument selects the ES module build of the WebAssembly runtime.
+  // This runs as a module worker, where importScripts does not exist, and the
+  // non-module runtime is CommonJS and cannot be imported at all.
+  const fileset = await FilesetResolver.forVisionTasks(request.wasmPath, true)
   landmarker = await HandLandmarker.createFromOptions(fileset, {
     baseOptions: { modelAssetPath: request.modelPath, delegate: 'GPU' },
     runningMode: 'VIDEO',
