@@ -13,6 +13,7 @@ Allowed paths: color, fontSize, w, h, x, y, align, src, text.
 Block types: section, hero, h1, h2, h3, h4, paragraph, text, image.
 To add a block, output {"op":"insert","type":"<block type>"} and nothing else.
 To choose a block, output {"op":"select","id":"<id from the block list>"}.
+To delete a block, output {"op":"remove","id":"<id from the block list>"}.
 Colors must be resolved to a hex string.
 Output ONLY raw JSON. No prose, no markdown fences, no explanation.
 If the utterance is not an editing command, output {"op":"noop"}.`

@@ -107,9 +107,10 @@ export function validateCommand(value: unknown, context: ParseContext): Command 
 
     case 'remove': {
       const id = record['id']
-      return typeof id === 'string' && context.doc.blocks[id] !== undefined
-        ? { op: 'remove', id }
-        : NOOP
+      if (typeof id !== 'string') return NOOP
+      if (context.doc.blocks[id] !== undefined) return { op: 'remove', id }
+      const block = resolveTarget(context.doc, id, context.selectedId)
+      return block === null ? NOOP : { op: 'remove', id: block.id }
     }
 
     case 'move': {
