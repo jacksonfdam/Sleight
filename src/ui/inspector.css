@@ -99,3 +99,36 @@
   height: 30px;
   padding: 2px;
 }
+
+.sl-gif {
+  display: grid;
+  gap: var(--sl-space-2);
+  padding-top: var(--sl-space-3);
+  border-top: 1px solid var(--sl-hud-line);
+}
+
+.sl-gif__label {
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sl-gif input {
+  width: 100%;
+  padding: 5px 7px;
+  color: var(--sl-text);
+  font: inherit;
+  background: var(--sl-surface);
+  border: 1px solid var(--sl-border);
+  border-radius: var(--sl-radius-sm);
+}
+
+.sl-gif input:focus {
+  border-color: var(--sl-hud-ink);
+}
+
+.sl-gif__actions {
+  display: flex;
+  gap: var(--sl-space-2);
+}

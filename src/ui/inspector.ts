@@ -2,6 +2,7 @@ import './inspector.css'
 import { isAlign } from '../core/document'
 import type { EditorState } from '../core/store'
 import type { Block, BlockType, Command, PropPath } from '../core/types'
+import type { GifRequest } from '../language/gif-phrases'
 
 type FieldKind = 'number' | 'color' | 'align' | 'text' | 'url' | 'flag'
 
@@ -99,6 +100,74 @@ function controlValue(block: Block, spec: FieldSpec): string {
 export interface InspectorOptions {
   readonly host: HTMLElement
   readonly onCommand: (cmd: Command) => void
+  /** Absent when GIF search is not wired up, which hides the controls entirely. */
+  readonly onGifRequest?: (request: GifRequest) => void
+}
+
+/**
+ * The same four actions the voice grammar offers, as controls. Voice is the
+ * nicer way to use this and a poor way to diagnose it: when a word is misheard
+ * there is nothing to click to find out whether the search itself works.
+ */
+function createGifPanel(onRequest: (request: GifRequest) => void): HTMLElement {
+  const panel = document.createElement('div')
+  panel.className = 'sl-gif'
+
+  const label = document.createElement('span')
+  label.className = 'sl-gif__label'
+  label.textContent = 'GIF search'
+
+  const query = document.createElement('input')
+  query.type = 'search'
+  query.placeholder = 'a cat typing'
+  query.setAttribute('aria-label', 'Search GIFs by description')
+
+  const run = (): void => {
+    const text = query.value.trim()
+    if (text.length > 0) onRequest({ kind: 'search', query: text })
+  }
+  query.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      run()
+    }
+  })
+
+  const actions = document.createElement('div')
+  actions.className = 'sl-gif__actions'
+  const buttons: readonly {
+    readonly text: string
+    readonly hint: string
+    readonly go: () => void
+  }[] = [
+    { text: 'Search', hint: 'Search for a GIF', go: run },
+    {
+      text: 'Next',
+      hint: 'Show the next result',
+      go: () => {
+        onRequest({ kind: 'change' })
+      },
+    },
+    {
+      text: 'Shuffle',
+      hint: 'Show any other result',
+      go: () => {
+        onRequest({ kind: 'shuffle' })
+      },
+    },
+  ]
+  for (const entry of buttons) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'sl-button sl-button--compact'
+    button.setAttribute('aria-label', entry.hint)
+    button.textContent = entry.text
+    button.addEventListener('click', entry.go)
+    actions.append(button)
+  }
+
+  panel.append(label, query, actions)
+  return panel
 }
 
 /**
@@ -218,6 +287,11 @@ export class Inspector {
     }
 
     this.host.append(title, type, fields)
+
+    const onGifRequest = this.options.onGifRequest
+    if (block.type === 'image' && onGifRequest !== undefined) {
+      this.host.append(createGifPanel(onGifRequest))
+    }
   }
 
   private emit(id: string, spec: FieldSpec, control: HTMLElement): void {

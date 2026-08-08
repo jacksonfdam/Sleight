@@ -164,6 +164,11 @@ async function start(host: HTMLElement): Promise<void> {
     onCommand: cmd => {
       bus.emit(cmd, 'pointer')
     },
+    onGifRequest: request => {
+      void parser.fulfilGif(request).then(cmd => {
+        if (cmd.op !== 'noop') bus.emit(cmd, 'pointer')
+      })
+    },
   })
 
   let saved = store.getState().doc
