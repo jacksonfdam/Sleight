@@ -1,6 +1,7 @@
-import { findByType, isAlign, isBlockType } from '../core/document'
+import { isAlign } from '../core/document'
 import type { Align, Command, DocumentState, NumericPath, PropPath } from '../core/types'
 import { VOICE_FONT_STEP_PX, VOICE_SIZE_STEP_PX } from '../tuning'
+import { resolveTarget } from './target'
 
 export interface ParseContext {
   readonly doc: DocumentState
@@ -149,12 +150,10 @@ export function parseGrammar(utterance: string, context: ParseContext): Command 
   if (/^(?:redo|redo that|put it back)$/.test(text)) return { op: 'redo' }
   if (/^(?:deselect|clear selection|nothing)$/.test(text)) return { op: 'select', id: null }
 
-  const select = /^(?:select|pick|choose)(?: the)? (?<type>\w+)$/.exec(text)
-  if (select?.groups?.['type'] !== undefined) {
-    const type = select.groups['type'].replace(/s$/, '')
-    if (!isBlockType(type)) return NOOP
-    const block = findByType(context.doc, type)
-    return block === undefined ? NOOP : { op: 'select', id: block.id }
+  const select = /^(?:select|pick|choose|highlight|focus on|go to) (?<target>.+)$/.exec(text)
+  if (select?.groups?.['target'] !== undefined) {
+    const block = resolveTarget(context.doc, select.groups['target'], context.selectedId)
+    return block === null ? NOOP : { op: 'select', id: block.id }
   }
 
   const id = context.selectedId
