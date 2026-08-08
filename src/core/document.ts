@@ -44,6 +44,36 @@ export function emptyDocument(): DocumentState {
   }
 }
 
+/** The document a first-time visitor lands on, so the canvas is never blank. */
+export function starterDocument(): DocumentState {
+  const root = createBlock(ROOT_ID, 'section', 'Canvas', { x: 0, y: 0, w: 960, h: 640 })
+  const hero = createBlock('hero', 'hero', 'Hero', {
+    x: 48,
+    y: 48,
+    w: 560,
+    h: 220,
+    text: 'Sleight',
+    fontSize: 44,
+    align: 'center',
+  })
+  const intro = createBlock('intro', 'text', 'Intro copy', {
+    x: 48,
+    y: 300,
+    w: 400,
+    h: 120,
+    text: 'Move a block with the mouse, with a pinch, or by asking for it out loud.',
+    fontSize: 18,
+  })
+  const shot = createBlock('shot', 'image', 'Image', { x: 480, y: 300, w: 280, h: 180 })
+
+  return {
+    rootId: ROOT_ID,
+    blocks: { [ROOT_ID]: root, hero, intro, shot },
+    children: { [ROOT_ID]: ['hero', 'intro', 'shot'], hero: [], intro: [], shot: [] },
+    parents: { hero: ROOT_ID, intro: ROOT_ID, shot: ROOT_ID },
+  }
+}
+
 export function getBlock(doc: DocumentState, id: string): Block | undefined {
   return doc.blocks[id]
 }
