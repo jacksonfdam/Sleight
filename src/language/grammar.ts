@@ -1,6 +1,6 @@
 import { insertCommand, isAlign } from '../core/document'
 import type { Align, Command, DocumentState, NumericPath, PropPath } from '../core/types'
-import { VOICE_FONT_STEP_PX, VOICE_SIZE_STEP_PX } from '../tuning'
+import { VOICE_FONT_STEP_PX, VOICE_ROTATE_STEP_DEG, VOICE_SIZE_STEP_PX } from '../tuning'
 import { blockTypeFor, resolveTarget } from './target'
 
 export interface ParseContext {
@@ -57,6 +57,8 @@ const PROPS: Record<string, PropPath> = {
   'type size': 'fontSize',
   width: 'w',
   height: 'h',
+  rotation: 'rotation',
+  angle: 'rotation',
   alignment: 'align',
   align: 'align',
   text: 'text',
@@ -157,6 +159,42 @@ function targetedProp(
   return null
 }
 
+/** Words that mean the turn goes the other way. */
+const ANTICLOCKWISE = /\b(?:left|anticlockwise|counterclockwise|counter|back|backwards)\b/
+
+/** Words that only ever appear in a rotation, used to disambiguate `turn`. */
+const ROTATION_WORDS = /\b(?:degrees?|deg|clockwise|anticlockwise|counterclockwise|around)\b/
+
+/** Everything that decorates a rotation without naming the block. */
+const ROTATION_NOISE =
+  /\b(?:degrees?|deg|by|clockwise|anticlockwise|counterclockwise|counter|left|right|back|backwards|forwards?|around)\b/g
+
+/**
+ * A rotation, absolute when the phrase says `to` and relative otherwise.
+ *
+ * `explicit` is false for `turn`, which the property grammar also owns. Without
+ * a number or a rotation word, `turn the hero to red` would otherwise be read as
+ * a quarter turn of the hero rather than falling through to the colour rule.
+ */
+function rotateCommand(rest: string, explicit: boolean, context: ParseContext): Command | null {
+  const digits = /(-?\d+(?:\.\d+)?)/.exec(rest)
+  if (digits === null && !explicit && !ROTATION_WORDS.test(rest)) return null
+
+  const named = rest.replace(/-?\d+(?:\.\d+)?/g, ' ').replace(ROTATION_NOISE, ' ')
+  const id = targetFor(named, context)
+  if (id === null) return null
+
+  const raw = digits?.[1]
+  const amount = raw === undefined ? VOICE_ROTATE_STEP_DEG : Math.round(Number.parseFloat(raw) || 0)
+
+  // `to` marks the angle as a destination; without it the angle is a step.
+  if (raw !== undefined && /\bto\b/.test(rest)) {
+    return { op: 'set', id, path: 'rotation', value: amount }
+  }
+  const sign = ANTICLOCKWISE.test(rest) ? -1 : 1
+  return { op: 'nudge', id, path: 'rotation', delta: sign * amount }
+}
+
 /** A relative size change, on the box or on the type. */
 function growCommand(id: string, how: string, font: boolean): Command | null {
   const step = GROW[how]
@@ -243,6 +281,19 @@ export function parseGrammar(utterance: string, context: ParseContext): Command 
   if (centre !== null) {
     const id = targetFor(centre.groups?.['target'] ?? '', context)
     if (id !== null) return { op: 'set', id, path: 'align', value: 'center' }
+  }
+
+  const straighten = /^(?:straighten|unrotate)(?: (?<target>.+))?$/.exec(text)
+  if (straighten !== null) {
+    const id = targetFor(straighten.groups?.['target'] ?? '', context)
+    if (id !== null) return { op: 'set', id, path: 'rotation', value: 0 }
+  }
+
+  const rotate = /^(?<verb>rotate|tilt|spin|turn) (?<rest>.+)$/.exec(text)
+  const spin = rotate?.groups?.['rest']
+  if (spin !== undefined) {
+    const cmd = rotateCommand(spin, rotate?.groups?.['verb'] !== 'turn', context)
+    if (cmd !== null) return cmd
   }
 
   const grow = /^make (?<rest>.+)$/.exec(text)

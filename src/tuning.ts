@@ -121,3 +121,10 @@ export const TWO_HAND_MIN_SPAN = 0.08
  * registering as motion at all.
  */
 export const RETICLE_PERIOD_MS = 2600
+
+/**
+ * How far `rotate it` turns a block when no angle is spoken. A quarter turn is
+ * too coarse to nudge a photo straight; a single degree needs saying a dozen
+ * times before anything visible happens.
+ */
+export const VOICE_ROTATE_STEP_DEG = 15
