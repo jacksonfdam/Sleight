@@ -4,7 +4,7 @@ import { PointerAdapter } from './adapters/pointer'
 import { IntentBus } from './core/bus'
 import { starterDocument } from './core/document'
 import { Store } from './core/store'
-import { Overlay } from './render/overlay'
+import { Overlay, computeGuides } from './render/overlay'
 import { Renderer } from './render/renderer'
 
 interface Shell {
@@ -54,6 +54,7 @@ function start(host: HTMLElement): void {
     const root = state.doc.blocks[state.doc.rootId]
     if (root) overlay.resize(root.props.w, root.props.h)
     overlay.clear()
+    overlay.drawGuides(computeGuides(state.doc, bus.lockedBlock('geom')))
     requestAnimationFrame(draw)
   }
 

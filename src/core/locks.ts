@@ -89,6 +89,15 @@ export class LockTable {
     return freed
   }
 
+  /** Keys currently leased, ignoring expired leases. */
+  held(): string[] {
+    const keys: string[] = []
+    for (const key of [...this.leases.keys()]) {
+      if (this.holder(key) !== undefined) keys.push(key)
+    }
+    return keys
+  }
+
   /** When the earliest lease expires, or null when nothing is held. */
   nextExpiry(): number | null {
     let earliest: number | null = null

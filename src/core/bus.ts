@@ -1,3 +1,4 @@
+import type { PropGroup } from './locks'
 import { LockTable, keyFor } from './locks'
 import type { Command, Intent, IntentSource } from './types'
 
@@ -103,6 +104,19 @@ export class IntentBus {
     if (this.sweepTimer !== null) this.clearTimer(this.sweepTimer)
     this.sweepTimer = null
     this.handlers.clear()
+  }
+
+  /**
+   * The block currently held by a gesture for a given property group. The
+   * overlay uses this to decide what to draw guides for, which means it works
+   * for the pointer and the hand without either adapter telling it anything.
+   */
+  lockedBlock(group: PropGroup): string | null {
+    const suffix = `:${group}`
+    for (const key of this.locks.held()) {
+      if (key.endsWith(suffix)) return key.slice(0, -suffix.length)
+    }
+    return null
   }
 
   /** Number of voice intents currently waiting on a lock. */

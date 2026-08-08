@@ -11,3 +11,10 @@
  * occlusion blocks deferred voice commands for that much longer.
  */
 export const LOCK_TTL_MS = 1500
+
+/**
+ * How close two edges must be before a snap guide appears during a drag.
+ * Lower and the guides stop showing up when you want them. Higher and several
+ * guides fire at once, which reads as noise rather than alignment.
+ */
+export const SNAP_TOLERANCE_PX = 6
