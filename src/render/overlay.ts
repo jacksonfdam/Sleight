@@ -1,7 +1,7 @@
 import './overlay.css'
 import { absoluteOrigin, subtreeIds } from '../core/document'
 import type { DocumentState } from '../core/types'
-import { SNAP_TOLERANCE_PX } from '../tuning'
+import { RETICLE_PERIOD_MS, SNAP_TOLERANCE_PX } from '../tuning'
 
 const LABEL_FONT = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
 
@@ -113,6 +113,7 @@ export class Overlay {
   private labelInk = ''
   private cursorColor = ''
   private ringColor = ''
+  private spins = true
 
   constructor(host: HTMLElement) {
     this.canvas = document.createElement('canvas')
@@ -123,6 +124,14 @@ export class Overlay {
     this.readTokens()
     globalThis.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       this.readTokens()
+    })
+
+    // Canvas has no stylesheet to honour, so the motion preference is read here
+    // and applied to the one thing on this surface that moves on its own.
+    const motion = globalThis.matchMedia('(prefers-reduced-motion: reduce)')
+    this.spins = !motion.matches
+    motion.addEventListener('change', event => {
+      this.spins = !event.matches
     })
   }
 
@@ -167,24 +176,36 @@ export class Overlay {
    * The hand cursor is drawn here rather than as a DOM element so it can move
    * every frame without touching layout, and so it can never end up in the
    * export.
+   *
+   * The outer ring is drawn as four turning arcs. A hand that stops moving still
+   * leaves a cursor that is visibly live, which is the difference between a
+   * paused gesture and lost tracking.
    */
-  drawCursor(x: number, y: number, pinching: boolean): void {
+  drawCursor(x: number, y: number, pinching: boolean, now: number): void {
     const context = this.context
     if (context === null) return
 
     context.save()
+    context.translate(x, y)
     context.fillStyle = this.cursorColor
     context.strokeStyle = this.cursorColor
     context.lineWidth = 2
 
-    context.beginPath()
-    context.arc(x, y, pinching ? 6 : 10, 0, Math.PI * 2)
-    if (pinching) context.fill()
-    else context.stroke()
+    const radius = pinching ? 10 : 15
+    context.save()
+    context.rotate(this.spins ? ((now % RETICLE_PERIOD_MS) / RETICLE_PERIOD_MS) * Math.PI * 2 : 0)
+    for (let quadrant = 0; quadrant < 4; quadrant += 1) {
+      const from = quadrant * (Math.PI / 2) + 0.22
+      context.beginPath()
+      context.arc(0, 0, radius, from, from + Math.PI / 2 - 0.44)
+      context.stroke()
+    }
+    context.restore()
 
     context.beginPath()
-    context.arc(x, y, 2, 0, Math.PI * 2)
-    context.fill()
+    context.arc(0, 0, pinching ? 5 : 3, 0, Math.PI * 2)
+    if (pinching) context.fill()
+    else context.stroke()
     context.restore()
   }
 

@@ -114,3 +114,10 @@ export const PINCH_SCALE_MAX = 6
  * small tracking errors swing the ratio wildly, so the gesture waits.
  */
 export const TWO_HAND_MIN_SPAN = 0.08
+
+/**
+ * How long the hand reticle takes to complete one turn. Faster reads as an
+ * error state rather than as a live cursor; slower and the rotation stops
+ * registering as motion at all.
+ */
+export const RETICLE_PERIOD_MS = 2600

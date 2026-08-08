@@ -125,6 +125,7 @@ async function start(host: HTMLElement): Promise<void> {
    * fighting a mouse resting somewhere else.
    */
   const draw = (): void => {
+    const now = performance.now()
     const state = store.getState()
     const root = state.doc.blocks[state.doc.rootId]
     if (root) overlay.resize(root.props.w, root.props.h)
@@ -135,7 +136,7 @@ async function start(host: HTMLElement): Promise<void> {
     const y = cursor?.y ?? pointerY
     const probe = x < 0 ? { blockId: null, handle: null } : renderer.probe(x, y)
     handle = probe.handle
-    hovered = damper.resolve({ id: probe.blockId, x, y, source, now: performance.now() })
+    hovered = damper.resolve({ id: probe.blockId, x, y, source, now })
     if (hovered !== state.hoveredId) bus.emit({ op: 'hover', id: hovered }, source)
 
     overlay.clear()
@@ -151,7 +152,7 @@ async function start(host: HTMLElement): Promise<void> {
       }
       for (const point of local) {
         overlay.drawDwell(point.x, point.y, point.dwell)
-        overlay.drawCursor(point.x, point.y, point.pinching)
+        overlay.drawCursor(point.x, point.y, point.pinching, now)
       }
     }
     requestAnimationFrame(draw)
