@@ -1,7 +1,7 @@
 import type { IntentBus } from '../core/bus'
 import { transactionId } from '../core/bus'
 import type { HandleName } from '../render/renderer'
-import type { HandRequest, HandResponse } from '../vision/hand.worker'
+import type { HandLabel, HandPoint, HandRequest, HandResponse } from '../vision/hand.worker'
 import { resizeNudges } from './resize'
 import {
   DWELL_MS,
@@ -10,19 +10,30 @@ import {
   HAND_CONFIDENCE_MIN,
   PINCH_CLOSE,
   PINCH_OPEN,
+  PINCH_SCALE_MAX,
+  PINCH_SCALE_MIN,
+  TWO_HAND_MIN_SPAN,
 } from '../tuning'
 
 export interface HandCursor {
+  readonly label: HandLabel
   /** Client coordinates, so the same value drives hit testing and the overlay. */
   readonly x: number
   readonly y: number
-  readonly visible: boolean
   readonly pinching: boolean
   /** Progress towards a dwell click, 0 to 1. */
   readonly dwell: number
 }
 
 export type HandStatus = 'off' | 'starting' | 'running' | 'denied' | 'failed'
+
+/** Geometry the adapter needs in order to scale a block without reading the store. */
+export interface BlockBox {
+  readonly x: number
+  readonly y: number
+  readonly w: number
+  readonly h: number
+}
 
 /**
  * The slice of the worker interface this adapter uses. Depending on the narrow
@@ -45,10 +56,28 @@ export interface HandAdapterOptions {
   readonly getHovered: () => string | null
   /** The resize handle under the cursor, from the same per-frame probe. */
   readonly getHandle: () => HandleName | null
+  /** Falls back to the selection when a two-hand gesture starts off a block. */
+  readonly getSelected: () => string | null
+  readonly getBox: (id: string) => BlockBox | null
   readonly onStatus?: (status: HandStatus) => void
 }
 
-const HIDDEN: HandCursor = { x: 0, y: 0, visible: false, pinching: false, dwell: 0 }
+interface Grab {
+  readonly id: string
+  readonly txn: string
+  readonly handle: HandleName | null
+  lastX: number
+  lastY: number
+}
+
+interface Transform {
+  readonly id: string
+  readonly txn: string
+  readonly box: BlockBox
+  readonly span: number
+  readonly midX: number
+  readonly midY: number
+}
 
 function stretch(value: number): number {
   const span = 1 - HAND_ACTIVE_MARGIN * 2
@@ -57,8 +86,9 @@ function stretch(value: number): number {
 
 /**
  * Consumes the worker's samples on the main thread and turns them into the same
- * intents the pointer produces. Nothing downstream can tell the two apart, which
- * is the point: hover, selection, and undo behave identically in both modes.
+ * intents the pointer produces. One pinched hand grabs, exactly as a pointer
+ * press does. Two pinched hands scale and pan together, which is what two
+ * fingers do on a tablet.
  */
 export class HandAdapter {
   private readonly options: HandAdapterOptions
@@ -68,13 +98,10 @@ export class HandAdapter {
   private inFlight = false
   private ready = false
   private status: HandStatus = 'off'
-  private current: HandCursor = HIDDEN
-  private pinching = false
-  private txn: string | null = null
-  private dragId: string | null = null
-  private dragHandle: HandleName | null = null
-  private lastX = 0
-  private lastY = 0
+  private current: readonly HandCursor[] = []
+  private readonly pinched = new Set<HandLabel>()
+  private grab: Grab | null = null
+  private transform: Transform | null = null
   private dwellX = 0
   private dwellY = 0
   private dwellSince = 0
@@ -90,8 +117,19 @@ export class HandAdapter {
     }
   }
 
-  get cursor(): HandCursor {
+  /** Every tracked hand this frame. */
+  get cursors(): readonly HandCursor[] {
     return this.current
+  }
+
+  /** The hand that drives hit testing: a pinching one, else the first tracked. */
+  get cursor(): HandCursor | null {
+    return this.current.find(hand => hand.pinching) ?? this.current[0] ?? null
+  }
+
+  /** True while two hands are scaling a block together. */
+  get transforming(): boolean {
+    return this.transform !== null
   }
 
   /**
@@ -134,10 +172,12 @@ export class HandAdapter {
     this.stream = null
     this.video.srcObject = null
     this.send({ type: 'stop' })
-    this.releasePinch()
+    this.endGrab()
+    this.endTransform()
+    this.pinched.clear()
     this.ready = false
     this.inFlight = false
-    this.current = HIDDEN
+    this.current = []
     this.setStatus('off')
   }
 
@@ -186,30 +226,153 @@ export class HandAdapter {
         return
       case 'sample':
         this.inFlight = false
-        this.apply(response.x, response.y, response.pinch, response.confidence)
+        this.apply(response.hands)
         return
     }
   }
 
-  private apply(nx: number, ny: number, pinch: number, confidence: number): void {
-    if (confidence < HAND_CONFIDENCE_MIN) {
-      this.current = HIDDEN
-      this.releasePinch()
+  private apply(hands: readonly HandPoint[]): void {
+    const rect = this.options.surface.getBoundingClientRect()
+    const tracked: HandCursor[] = []
+
+    for (const hand of hands) {
+      if (hand.confidence < HAND_CONFIDENCE_MIN) continue
+      // Hysteresis: close at the tighter threshold, release only at the looser one.
+      const held = this.pinched.has(hand.label)
+      const pinching = held ? hand.pinch < PINCH_OPEN : hand.pinch < PINCH_CLOSE
+      if (pinching) this.pinched.add(hand.label)
+      else this.pinched.delete(hand.label)
+
+      tracked.push({
+        label: hand.label,
+        x: rect.left + stretch(hand.x) * rect.width,
+        y: rect.top + stretch(hand.y) * rect.height,
+        pinching,
+        dwell: 0,
+      })
+    }
+
+    // A hand that dropped out of tracking cannot keep holding its pinch.
+    for (const label of [...this.pinched]) {
+      if (!tracked.some(hand => hand.label === label)) this.pinched.delete(label)
+    }
+
+    const pinching = tracked.filter(hand => hand.pinching)
+    this.current = this.withDwell(tracked, pinching.length > 0)
+
+    if (pinching.length >= 2) {
+      this.runTransform(pinching[0], pinching[1], rect.width)
       return
     }
 
-    const rect = this.options.surface.getBoundingClientRect()
-    const x = rect.left + stretch(nx) * rect.width
-    const y = rect.top + stretch(ny) * rect.height
+    this.endTransform()
+    if (pinching.length === 1) this.runGrab(pinching[0])
+    else this.endGrab()
+  }
 
-    // Hysteresis: close at the tighter threshold, release only at the looser one.
-    const closed = this.pinching ? pinch < PINCH_OPEN : pinch < PINCH_CLOSE
-    const dwell = closed ? this.resetDwell(x, y) : this.trackDwell(x, y)
-    this.current = { x, y, visible: true, pinching: closed, dwell }
+  /** Dwell only makes sense for a single idle hand, so it is scoped to that. */
+  private withDwell(tracked: readonly HandCursor[], anyPinching: boolean): HandCursor[] {
+    const primary = tracked[0]
+    if (anyPinching || tracked.length !== 1 || primary === undefined) {
+      this.resetDwell(primary?.x ?? 0, primary?.y ?? 0)
+      return [...tracked]
+    }
+    return [{ ...primary, dwell: this.trackDwell(primary.x, primary.y) }]
+  }
 
-    if (closed && !this.pinching) this.beginPinch(x, y)
-    else if (!closed && this.pinching) this.releasePinch()
-    else if (closed) this.dragTo(x, y)
+  private runGrab(hand: HandCursor | undefined): void {
+    if (hand === undefined) return
+    const grab = this.grab
+    if (grab === null) {
+      this.beginGrab(hand)
+      return
+    }
+
+    const dx = Math.round(hand.x - grab.lastX)
+    const dy = Math.round(hand.y - grab.lastY)
+    if (dx === 0 && dy === 0) return
+    grab.lastX += dx
+    grab.lastY += dy
+
+    if (grab.handle !== null) {
+      for (const nudge of resizeNudges(grab.handle, dx, dy)) {
+        this.options.bus.emit({ op: 'nudge', id: grab.id, ...nudge }, 'hand', grab.txn)
+      }
+      return
+    }
+    this.options.bus.emit({ op: 'nudge', id: grab.id, path: 'x', delta: dx }, 'hand', grab.txn)
+    this.options.bus.emit({ op: 'nudge', id: grab.id, path: 'y', delta: dy }, 'hand', grab.txn)
+  }
+
+  /**
+   * A pinch is the hand equivalent of pointer down. Closing it over a resize
+   * handle of the selected block grabs that handle; anywhere else it grabs the
+   * block itself.
+   */
+  private beginGrab(hand: HandCursor): void {
+    const handle = this.options.getHandle()
+    const target = this.options.getHovered()
+    if (handle === null) this.options.bus.emit({ op: 'select', id: target }, 'hand')
+    if (target === null) return
+
+    this.grab = {
+      id: target,
+      txn: transactionId(handle === null ? 'hand-move' : 'hand-resize'),
+      handle,
+      lastX: hand.x,
+      lastY: hand.y,
+    }
+  }
+
+  private endGrab(): void {
+    if (this.grab !== null) this.options.bus.endTransaction(this.grab.txn)
+    this.grab = null
+  }
+
+  /**
+   * Two pinched hands scale and pan together: the distance between them sets the
+   * size, their midpoint sets the position. The result is written as absolute
+   * values rather than accumulated deltas, so a dropped frame cannot leave the
+   * block a little further out of place with every gesture.
+   */
+  private runTransform(a: HandCursor | undefined, b: HandCursor | undefined, width: number): void {
+    if (a === undefined || b === undefined) return
+    const span = Math.hypot(a.x - b.x, a.y - b.y)
+    const midX = (a.x + b.x) / 2
+    const midY = (a.y + b.y) / 2
+
+    let active = this.transform
+    if (active === null) {
+      // Too close together and small tracking errors swing the ratio wildly.
+      if (span < width * TWO_HAND_MIN_SPAN) return
+      const id = this.options.getHovered() ?? this.options.getSelected()
+      if (id === null) return
+      const box = this.options.getBox(id)
+      if (box === null) return
+
+      this.endGrab()
+      active = { id, txn: transactionId('hand-transform'), box, span, midX, midY }
+      this.transform = active
+      this.options.bus.emit({ op: 'select', id }, 'hand')
+    }
+
+    const scale = Math.min(PINCH_SCALE_MAX, Math.max(PINCH_SCALE_MIN, span / active.span))
+    const w = Math.round(active.box.w * scale)
+    const h = Math.round(active.box.h * scale)
+    // Scale about the block's centre, then follow the midpoint as it travels.
+    const x = Math.round(active.box.x + (midX - active.midX) - (w - active.box.w) / 2)
+    const y = Math.round(active.box.y + (midY - active.midY) - (h - active.box.h) / 2)
+
+    const { bus } = this.options
+    bus.emit({ op: 'set', id: active.id, path: 'w', value: w }, 'hand', active.txn)
+    bus.emit({ op: 'set', id: active.id, path: 'h', value: h }, 'hand', active.txn)
+    bus.emit({ op: 'set', id: active.id, path: 'x', value: x }, 'hand', active.txn)
+    bus.emit({ op: 'set', id: active.id, path: 'y', value: y }, 'hand', active.txn)
+  }
+
+  private endTransform(): void {
+    if (this.transform !== null) this.options.bus.endTransaction(this.transform.txn)
+    this.transform = null
   }
 
   /**
@@ -218,12 +381,11 @@ export class HandAdapter {
    * feedback a dwell target is indistinguishable from an unresponsive one.
    */
   private trackDwell(x: number, y: number): number {
-    const now = performance.now()
     if (Math.hypot(x - this.dwellX, y - this.dwellY) > DWELL_RADIUS_PX) {
       return this.resetDwell(x, y)
     }
 
-    const progress = Math.min(1, (now - this.dwellSince) / DWELL_MS)
+    const progress = Math.min(1, (performance.now() - this.dwellSince) / DWELL_MS)
     if (progress >= 1 && !this.dwellFired) {
       this.dwellFired = true
       this.options.bus.emit({ op: 'select', id: this.options.getHovered() }, 'hand')
@@ -237,55 +399,5 @@ export class HandAdapter {
     this.dwellSince = performance.now()
     this.dwellFired = false
     return 0
-  }
-
-  /**
-   * A pinch is the hand equivalent of pointer down. Closing it over a resize
-   * handle of the selected block grabs that handle; anywhere else it grabs the
-   * block itself. Same two gestures the mouse has, same intents downstream.
-   */
-  private beginPinch(x: number, y: number): void {
-    this.pinching = true
-    this.lastX = x
-    this.lastY = y
-
-    const handle = this.options.getHandle()
-    const target = this.options.getHovered()
-    if (handle === null) this.options.bus.emit({ op: 'select', id: target }, 'hand')
-
-    this.dragHandle = handle
-    this.dragId = target
-    this.txn = target === null ? null : transactionId(handle === null ? 'hand-move' : 'hand-resize')
-  }
-
-  private dragTo(x: number, y: number): void {
-    const txn = this.txn
-    const id = this.dragId
-    if (txn === null || id === null) return
-
-    const dx = Math.round(x - this.lastX)
-    const dy = Math.round(y - this.lastY)
-    if (dx === 0 && dy === 0) return
-    this.lastX += dx
-    this.lastY += dy
-
-    const handle = this.dragHandle
-    if (handle !== null) {
-      for (const nudge of resizeNudges(handle, dx, dy)) {
-        this.options.bus.emit({ op: 'nudge', id, ...nudge }, 'hand', txn)
-      }
-      return
-    }
-
-    this.options.bus.emit({ op: 'nudge', id, path: 'x', delta: dx }, 'hand', txn)
-    this.options.bus.emit({ op: 'nudge', id, path: 'y', delta: dy }, 'hand', txn)
-  }
-
-  private releasePinch(): void {
-    if (this.txn !== null) this.options.bus.endTransaction(this.txn)
-    this.txn = null
-    this.dragId = null
-    this.dragHandle = null
-    this.pinching = false
   }
 }

@@ -98,3 +98,19 @@ export const HAND_ACTIVE_MARGIN = 0.15
  */
 export const HOVER_DWELL_MS = 120
 export const HOVER_RELEASE_PX = 8
+
+/**
+ * Bounds on a single two-hand scale gesture, relative to the size the block had
+ * when the gesture started. Tighter and a deliberate shrink stops short of what
+ * was intended; looser and a moment of bad tracking can throw a block to a size
+ * that has to be undone rather than corrected.
+ */
+export const PINCH_SCALE_MIN = 0.2
+export const PINCH_SCALE_MAX = 6
+
+/**
+ * How far apart the two pinch points must be before a scale gesture engages, as
+ * a fraction of the canvas width. Below this the two hands are close enough that
+ * small tracking errors swing the ratio wildly, so the gesture waits.
+ */
+export const TWO_HAND_MIN_SPAN = 0.08

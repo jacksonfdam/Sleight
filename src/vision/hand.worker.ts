@@ -19,9 +19,11 @@ export interface HandStopRequest {
 
 export type HandRequest = HandInitRequest | HandFrameRequest | HandStopRequest
 
-/** The only shape the main thread ever sees. Landmarks stay in the worker. */
-export interface HandSample {
-  readonly type: 'sample'
+/** Which physical hand a point came from, used to keep filters separate. */
+export type HandLabel = 'Left' | 'Right'
+
+export interface HandPoint {
+  readonly label: HandLabel
   /** Normalised to the video frame, already mirrored to match the viewer. */
   readonly x: number
   readonly y: number
@@ -30,18 +32,43 @@ export interface HandSample {
   readonly confidence: number
 }
 
+/** The only shape the main thread ever sees. Landmarks stay in the worker. */
+export interface HandSample {
+  readonly type: 'sample'
+  readonly hands: readonly HandPoint[]
+}
+
 export type HandResponse =
-  HandSample | { readonly type: 'ready' } | { readonly type: 'error'; readonly message: string }
+  | HandSample
+  | { readonly type: 'ready' }
+  | { readonly type: 'error'; readonly message: string }
 
 const THUMB_TIP = 4
 const INDEX_TIP = 8
 
-const smoothed = new OneEuroPoint()
+/**
+ * One filter per hand, keyed by handedness. A shared filter would make each hand
+ * yank the other's smoothed position every time they swap places in the result
+ * list, which happens constantly when both are in frame.
+ */
+const smoothed = new Map<HandLabel, OneEuroPoint>()
 let landmarker: HandLandmarker | null = null
 let lastTimestamp = -1
 
 function post(message: HandResponse): void {
   postMessage(message)
+}
+
+function filterFor(label: HandLabel): OneEuroPoint {
+  const existing = smoothed.get(label)
+  if (existing !== undefined) return existing
+  const created = new OneEuroPoint()
+  smoothed.set(label, created)
+  return created
+}
+
+function resetFilters(): void {
+  for (const filter of smoothed.values()) filter.reset()
 }
 
 async function init(request: HandInitRequest): Promise<void> {
@@ -52,7 +79,7 @@ async function init(request: HandInitRequest): Promise<void> {
   landmarker = await HandLandmarker.createFromOptions(fileset, {
     baseOptions: { modelAssetPath: request.modelPath, delegate: 'GPU' },
     runningMode: 'VIDEO',
-    numHands: 1,
+    numHands: 2,
   })
   post({ type: 'ready' })
 }
@@ -70,23 +97,44 @@ function detect(request: HandFrameRequest): void {
 
   try {
     const result = model.detectForVideo(request.bitmap, timestamp)
-    const hand = result.landmarks[0]
-    const thumb = hand?.[THUMB_TIP]
-    const index = hand?.[INDEX_TIP]
-    const confidence = result.handedness[0]?.[0]?.score ?? 0
+    const hands: HandPoint[] = []
+    const seen = new Set<HandLabel>()
 
-    if (thumb === undefined || index === undefined) {
-      smoothed.reset()
-      post({ type: 'sample', x: 0, y: 0, pinch: 1, confidence: 0 })
-      return
+    for (const [index, landmarks] of result.landmarks.entries()) {
+      const thumb = landmarks[THUMB_TIP]
+      const finger = landmarks[INDEX_TIP]
+      if (thumb === undefined || finger === undefined) continue
+
+      const category = result.handedness[index]?.[0]
+      const label: HandLabel = category?.categoryName === 'Left' ? 'Left' : 'Right'
+      // Two detections reporting the same hand would share one filter, so the
+      // second is dropped rather than left to fight the first.
+      if (seen.has(label)) continue
+      seen.add(label)
+
+      // The cursor sits between the two pinching fingers, so closing the pinch
+      // does not drag the cursor off the thing being grabbed.
+      const point = filterFor(label).filter(
+        (thumb.x + finger.x) / 2,
+        (thumb.y + finger.y) / 2,
+        timestamp,
+      )
+      hands.push({
+        label,
+        x: 1 - point.x,
+        y: point.y,
+        pinch: Math.hypot(thumb.x - finger.x, thumb.y - finger.y),
+        confidence: category?.score ?? 0,
+      })
     }
 
-    // The cursor sits between the two pinching fingers, so closing the pinch
-    // does not drag the cursor off the thing being grabbed.
-    const raw = smoothed.filter((thumb.x + index.x) / 2, (thumb.y + index.y) / 2, timestamp)
-    const pinch = Math.hypot(thumb.x - index.x, thumb.y - index.y)
+    // A hand that left the frame must forget its history, or it will snap across
+    // the canvas when it returns.
+    for (const [label, filter] of smoothed) {
+      if (!seen.has(label)) filter.reset()
+    }
 
-    post({ type: 'sample', x: 1 - raw.x, y: raw.y, pinch, confidence })
+    post({ type: 'sample', hands })
   } finally {
     request.bitmap.close()
   }
@@ -106,7 +154,7 @@ self.onmessage = (event: MessageEvent<HandRequest>): void => {
     case 'stop':
       landmarker?.close()
       landmarker = null
-      smoothed.reset()
+      resetFilters()
       lastTimestamp = -1
       return
   }

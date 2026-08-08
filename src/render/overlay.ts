@@ -209,6 +209,25 @@ export class Overlay {
     context.restore()
   }
 
+  /**
+   * The line between two pinched hands while they scale a block. Without it the
+   * gesture has no visible anchor and the block appears to resize on its own.
+   */
+  drawTether(ax: number, ay: number, bx: number, by: number): void {
+    const context = this.context
+    if (context === null) return
+
+    context.save()
+    context.strokeStyle = this.cursorColor
+    context.lineWidth = 1.5
+    context.setLineDash([6, 4])
+    context.beginPath()
+    context.moveTo(ax, ay)
+    context.lineTo(bx, by)
+    context.stroke()
+    context.restore()
+  }
+
   drawGuides(guides: readonly Guide[]): void {
     const context = this.context
     if (context === null || guides.length === 0) return

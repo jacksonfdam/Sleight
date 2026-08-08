@@ -107,6 +107,11 @@ async function start(host: HTMLElement): Promise<void> {
     modelPath: `${import.meta.env.BASE_URL}models/hand_landmarker.task`,
     getHovered: () => hovered,
     getHandle: () => handle,
+    getSelected: () => store.getState().selectedId,
+    getBox: id => {
+      const block = store.getState().doc.blocks[id]
+      return block === undefined ? null : block.props
+    },
     onStatus: status => {
       toolbar.setCameraActive(hand.running)
       toolbar.setNotice(CAMERA_NOTICE[status])
@@ -125,9 +130,9 @@ async function start(host: HTMLElement): Promise<void> {
     if (root) overlay.resize(root.props.w, root.props.h)
 
     const cursor = hand.cursor
-    const source = cursor.visible ? 'hand' : 'pointer'
-    const x = cursor.visible ? cursor.x : pointerX
-    const y = cursor.visible ? cursor.y : pointerY
+    const source = cursor !== null ? 'hand' : 'pointer'
+    const x = cursor?.x ?? pointerX
+    const y = cursor?.y ?? pointerY
     const probe = x < 0 ? { blockId: null, handle: null } : renderer.probe(x, y)
     handle = probe.handle
     hovered = damper.resolve({ id: probe.blockId, x, y, source, now: performance.now() })
@@ -135,12 +140,19 @@ async function start(host: HTMLElement): Promise<void> {
 
     overlay.clear()
     overlay.drawGuides(computeGuides(state.doc, bus.lockedBlock('geom')))
-    if (cursor.visible) {
+    const cursors = hand.cursors
+    if (cursors.length > 0) {
       const rect = shell.canvasHost.getBoundingClientRect()
-      const x = cursor.x - rect.left
-      const y = cursor.y - rect.top
-      overlay.drawDwell(x, y, cursor.dwell)
-      overlay.drawCursor(x, y, cursor.pinching)
+      const local = cursors.map(c => ({ ...c, x: c.x - rect.left, y: c.y - rect.top }))
+      const first = local[0]
+      const second = local[1]
+      if (hand.transforming && first !== undefined && second !== undefined) {
+        overlay.drawTether(first.x, first.y, second.x, second.y)
+      }
+      for (const point of local) {
+        overlay.drawDwell(point.x, point.y, point.dwell)
+        overlay.drawCursor(point.x, point.y, point.pinching)
+      }
     }
     requestAnimationFrame(draw)
   }
