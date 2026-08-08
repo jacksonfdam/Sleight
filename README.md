@@ -181,6 +181,44 @@ worse than no cursor.
 Every value tuned by feel lives in `src/tuning.ts`, each with a comment saying
 what goes wrong when it moves in either direction.
 
+## Voice command reference
+
+Property commands act on the current selection and are ignored when nothing is
+selected. Filler openings (`please`, `okay`, `hey`, `now`) and trailing
+punctuation are stripped before parsing, and anything that does not match
+produces no command at all rather than a guess — so conversation near an open
+microphone does not edit the document.
+
+| Say                                               | Effect                                     |
+| ------------------------------------------------- | ------------------------------------------ |
+| `change the text color to teal`                   | Sets the text colour                       |
+| `change the colour to navy`                       | Same, British spelling accepted            |
+| `set the color to #ff8800`                        | Accepts a hex literal, three or six digits |
+| `change the font size to 32`                      | Sets type size in pixels                   |
+| `set the width to 500`                            | Sets width in pixels                       |
+| `set the height to 240`                           | Sets height in pixels                      |
+| `make it bigger` / `make it wider`                | Widens the block                           |
+| `make it smaller` / `make it narrower`            | Narrows the block                          |
+| `make it taller` / `make it shorter`              | Changes height                             |
+| `make the text bigger` / `make the text smaller`  | Changes type size, not the box             |
+| `align left` / `align center` / `align right`     | Sets alignment                             |
+| `center it`                                       | Centres the text                           |
+| `select the hero` / `select the image`            | Selects the first block of that type       |
+| `deselect`                                        | Clears the selection                       |
+| `undo` / `redo`                                   | Moves through history                      |
+| `change the text to Welcome aboard`               | Replaces the block's text                  |
+| `set the source to https://example.com/photo.jpg` | Points an image block at a URL             |
+
+Units are optional: `32`, `32 pixels`, and `32px` are equivalent. Recognised
+colour names are black, white, grey, gray, silver, slate, navy, blue, sky, cyan,
+teal, emerald, green, lime, olive, yellow, amber, gold, orange, coral, red,
+maroon, crimson, pink, rose, magenta, purple, violet, indigo, and brown.
+
+In the Full tier the built-in model handles freer phrasing than this and falls
+back to the table above whenever it cannot produce a valid command. The full
+grammar, including what it deliberately refuses, is in
+[docs/voice-commands.md](docs/voice-commands.md).
+
 ## Running locally
 
 ```
