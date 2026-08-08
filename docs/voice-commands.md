@@ -1,9 +1,10 @@
 # Voice command reference
 
 Every phrasing below is handled by the deterministic grammar, which runs in every
-browser that has speech recognition and works with the network disconnected. When
-the built-in language model is available it handles freer phrasing and falls back
-to this grammar whenever it cannot produce a valid command.
+browser that has speech recognition and works with the network disconnected. The
+one exception is the GIF section, which calls a search service. When the built-in
+language model is available it handles freer phrasing and falls back to this
+grammar whenever it cannot produce a valid command.
 
 Commands that change a property act on the current selection unless they name a
 block. Every phrasing in the [Selection](#selection) table also works inside a
