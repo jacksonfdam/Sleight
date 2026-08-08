@@ -1,0 +1,61 @@
+.sl-inspector__empty {
+  margin: 0;
+  color: var(--sl-text-muted);
+}
+
+.sl-inspector__title {
+  margin: 0 0 var(--sl-space-1);
+  font-size: var(--sl-font-size-lg);
+}
+
+.sl-inspector__type {
+  display: block;
+  margin-bottom: var(--sl-space-4);
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sl-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sl-space-3);
+  margin: 0 0 var(--sl-space-4);
+}
+
+.sl-field {
+  display: grid;
+  gap: var(--sl-space-1);
+}
+
+.sl-field--wide {
+  grid-column: 1 / -1;
+}
+
+.sl-field > span {
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-size-sm);
+}
+
+.sl-field input,
+.sl-field select,
+.sl-field textarea {
+  width: 100%;
+  padding: 5px 7px;
+  color: var(--sl-text);
+  font: inherit;
+  background: var(--sl-surface);
+  border: 1px solid var(--sl-border);
+  border-radius: var(--sl-radius-sm);
+}
+
+.sl-field textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.sl-field input[type='color'] {
+  height: 30px;
+  padding: 2px;
+}

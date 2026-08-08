@@ -11,6 +11,7 @@ import { Store } from './core/store'
 import { Overlay, computeGuides } from './render/overlay'
 import { Renderer } from './render/renderer'
 import HandWorker from './vision/hand.worker?worker'
+import { Inspector } from './ui/inspector'
 import { Toolbar } from './ui/toolbar'
 import { CommandParser } from './language/parser'
 import { SpeechInput, isSpeechSupported } from './language/speech'
@@ -127,10 +128,14 @@ async function start(host: HTMLElement): Promise<void> {
     requestAnimationFrame(draw)
   }
 
+  const inspector = new Inspector({ host: shell.inspector })
+
   store.subscribe(state => {
     renderer.render(state)
+    inspector.render(state)
   })
   renderer.render(store.getState())
+  inspector.render(store.getState())
   requestAnimationFrame(draw)
 
   new PointerAdapter({ surface: shell.stage, bus }).attach()
