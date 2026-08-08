@@ -10,6 +10,26 @@ waiting on each other. It exports a standalone HTML page.
 Not yet deployed. See [Deploying](#deploying) — the build is production ready and
 the URL goes here once the project is imported.
 
+## Screenshots
+
+The editor in dark and light schemes. Every surface resolves through the token
+file, and the document canvas deliberately stays on a fixed paper surface in both
+— block colours are content that ships in the export, so they have to stay
+legible against the background the exported page will use.
+
+![The editor in dark mode with a block selected](docs/screenshots/editor-dark.png)
+
+![The editor in light mode with the inspector populated](docs/screenshots/editor-light.png)
+
+Snap guides and distance labels are drawn on the overlay canvas during a drag,
+and never reach the export.
+
+![Snap guides with a distance label during a drag](docs/screenshots/snap-guides.png)
+
+The same document exported as a standalone HTML file, opened directly from disk.
+
+![The exported page rendered on its own](docs/screenshots/exported-page.png)
+
 ## Browser requirements
 
 Sleight is usable in any modern browser with a mouse. The other two input
