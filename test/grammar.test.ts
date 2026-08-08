@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { starterDocument } from '../src/core/document'
 import { parseGrammar } from '../src/language/grammar'
 import type { ParseContext } from '../src/language/grammar'
-import { VOICE_FONT_STEP_PX, VOICE_SIZE_STEP_PX } from '../src/tuning'
+import { VOICE_FONT_STEP_PX, VOICE_ROTATE_STEP_DEG, VOICE_SIZE_STEP_PX } from '../src/tuning'
 
 const context: ParseContext = { doc: starterDocument(), selectedId: 'hero' }
 const unselected: ParseContext = { doc: starterDocument(), selectedId: null }
@@ -217,6 +217,138 @@ describe('naming the block a command acts on', () => {
 
   it('refuses a block that is not on the canvas', () => {
     expect(parseGrammar('change the sidebar color to teal', context)).toEqual({ op: 'noop' })
+  })
+})
+
+describe('rotation', () => {
+  it('turns by a step when no angle is given', () => {
+    expect(parseGrammar('rotate it', context)).toEqual({
+      op: 'nudge',
+      id: 'hero',
+      path: 'rotation',
+      delta: VOICE_ROTATE_STEP_DEG,
+    })
+  })
+
+  it('turns by a spoken angle', () => {
+    expect(parseGrammar('rotate it 30 degrees', context)).toEqual({
+      op: 'nudge',
+      id: 'hero',
+      path: 'rotation',
+      delta: 30,
+    })
+  })
+
+  it('turns the other way on an anticlockwise word', () => {
+    expect(parseGrammar('rotate the image left 45 degrees', context)).toEqual({
+      op: 'nudge',
+      id: 'shot',
+      path: 'rotation',
+      delta: -45,
+    })
+  })
+
+  it('reads to as a destination rather than a step', () => {
+    expect(parseGrammar('rotate the image to 90 degrees', context)).toEqual({
+      op: 'set',
+      id: 'shot',
+      path: 'rotation',
+      value: 90,
+    })
+  })
+
+  it('straightens a block', () => {
+    expect(parseGrammar('straighten the image', context)).toEqual({
+      op: 'set',
+      id: 'shot',
+      path: 'rotation',
+      value: 0,
+    })
+  })
+
+  // `turn` belongs to the property grammar too, so a bare turn must not steal it.
+  it('leaves a property command that starts with turn alone', () => {
+    expect(parseGrammar('turn the color to red', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'color',
+      value: '#dc2626',
+    })
+    expect(parseGrammar('turn the image 90 degrees', context)).toEqual({
+      op: 'nudge',
+      id: 'shot',
+      path: 'rotation',
+      delta: 90,
+    })
+  })
+})
+
+describe('text styles', () => {
+  it('switches a flag on from a verb', () => {
+    expect(parseGrammar('bold it', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'bold',
+      value: true,
+    })
+    expect(parseGrammar('underline the intro copy', context)).toEqual({
+      op: 'set',
+      id: 'intro',
+      path: 'underline',
+      value: true,
+    })
+    expect(parseGrammar('italicise it', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'italic',
+      value: true,
+    })
+  })
+
+  it('switches a flag on from an adjective', () => {
+    expect(parseGrammar('make it bold', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'bold',
+      value: true,
+    })
+    expect(parseGrammar('make the intro copy italic', context)).toEqual({
+      op: 'set',
+      id: 'intro',
+      path: 'italic',
+      value: true,
+    })
+  })
+
+  it('switches a flag off', () => {
+    expect(parseGrammar('unbold it', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'bold',
+      value: false,
+    })
+    expect(parseGrammar('make it not bold', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'bold',
+      value: false,
+    })
+    expect(parseGrammar('remove the underline', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'underline',
+      value: false,
+    })
+    expect(parseGrammar('remove the italics from the intro copy', context)).toEqual({
+      op: 'set',
+      id: 'intro',
+      path: 'italic',
+      value: false,
+    })
+  })
+
+  it('still deletes a block that is named', () => {
+    expect(parseGrammar('remove the image', context)).toEqual({ op: 'remove', id: 'shot' })
   })
 })
 
