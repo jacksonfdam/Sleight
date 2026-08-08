@@ -28,16 +28,7 @@ export interface BlockProps {
 }
 
 export type PropPath =
-  | 'x'
-  | 'y'
-  | 'w'
-  | 'h'
-  | 'rotation'
-  | 'color'
-  | 'fontSize'
-  | 'align'
-  | 'src'
-  | 'text'
+  'x' | 'y' | 'w' | 'h' | 'rotation' | 'color' | 'fontSize' | 'align' | 'src' | 'text'
 
 /** Paths whose values can be shifted by a relative delta. */
 export type NumericPath = 'x' | 'y' | 'w' | 'h' | 'fontSize' | 'rotation'
