@@ -44,9 +44,21 @@ declare global {
     content: string
   }
 
+  /**
+   * Declares the languages a session works in. Chrome warns when a request
+   * carries no output language, because it cannot attest to output safety
+   * without one.
+   */
+  interface LanguageModelExpectation {
+    type: 'text' | 'image' | 'audio'
+    languages?: string[]
+  }
+
   interface LanguageModelCreateOptions {
     temperature?: number
     topK?: number
+    expectedInputs?: LanguageModelExpectation[]
+    expectedOutputs?: LanguageModelExpectation[]
     initialPrompts?: LanguageModelInitialPrompt[]
     signal?: AbortSignal
   }

@@ -3,6 +3,17 @@ import { MODEL_TIMEOUT_MS } from '../tuning'
 export type ModelAvailability = LanguageModelAvailability
 
 /**
+ * The language the model is told to work in.
+ *
+ * Chrome warns when a request declares no output language, because it cannot
+ * attest to output safety without one, and it degrades quality. The command
+ * vocabulary is English, so English is the only honest answer here — declaring
+ * anything else would ask the model to answer in a language the grammar behind
+ * it cannot read.
+ */
+export const MODEL_LANGUAGE = 'en'
+
+/**
  * The model's only job is classification into the closed command vocabulary.
  * It never writes markup, styles, or prose; anything outside the vocabulary is
  * a no-op rather than an attempt.
@@ -55,6 +66,8 @@ export class PromptSession {
         // Determinism matters more than variety for a classification task.
         temperature: 0.1,
         topK: 1,
+        expectedInputs: [{ type: 'text', languages: [MODEL_LANGUAGE] }],
+        expectedOutputs: [{ type: 'text', languages: [MODEL_LANGUAGE] }],
         initialPrompts: [{ role: 'system', content: SYSTEM }],
       })
       return new PromptSession(base)
