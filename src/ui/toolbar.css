@@ -112,6 +112,20 @@
   border-color: currentcolor;
 }
 
+/* A pulse rather than a spinner: the page is usable throughout, and a spinner
+   would say otherwise. */
+.sl-badge[data-tier='loading'] {
+  color: var(--sl-hud-ink);
+  border-color: currentcolor;
+  animation: sl-pulse 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-badge[data-tier='loading'] {
+    animation: none;
+  }
+}
+
 .sl-notice {
   color: var(--sl-warning);
 }

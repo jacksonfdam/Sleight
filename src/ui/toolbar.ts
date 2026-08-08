@@ -17,6 +17,10 @@ const INSERTS: readonly { readonly type: BlockType; readonly label: string }[] =
 ]
 
 const TIERS: Record<CapabilityTier, { readonly badge: string; readonly detail: string }> = {
+  loading: {
+    badge: 'Starting',
+    detail: 'Checking what this browser can do. Mouse and hand editing already work.',
+  },
   full: {
     badge: 'Full',
     detail: 'Natural-language voice commands are parsed on this device.',
@@ -200,11 +204,15 @@ export class Toolbar {
    * browser without the built-in model is a supported configuration, not a
    * failure to report.
    */
-  setTier(tier: CapabilityTier): void {
+  setTier(tier: CapabilityTier, note = ''): void {
     const copy = TIERS[tier]
     this.badge.textContent = copy.badge
     this.badge.dataset['tier'] = tier
     this.badge.title = copy.detail
-    this.detail.textContent = copy.detail
+    this.detail.textContent = note.length > 0 ? `${copy.detail} ${note}` : copy.detail
+
+    // The microphone is the one control that cannot work until this resolves,
+    // so it is the only one held back rather than disabling the whole toolbar.
+    if (this.mic !== null) this.mic.disabled = tier === 'loading' || tier === 'manual'
   }
 }

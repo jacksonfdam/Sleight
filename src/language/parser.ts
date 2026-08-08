@@ -9,7 +9,13 @@ import { resolveTarget } from './target'
 import { PromptSession } from './prompt'
 import { isSpeechSupported } from './speech'
 
-export type CapabilityTier = 'full' | 'grammar' | 'manual'
+/**
+ * `loading` is not a capability the browser has; it is the interval before the
+ * others can be told apart. Opening a model session can take seconds on a cold
+ * profile, and a badge that guesses during that window would announce the wrong
+ * tier and then quietly correct itself.
+ */
+export type CapabilityTier = 'loading' | 'full' | 'grammar' | 'manual'
 
 const NOOP: Command = { op: 'noop' }
 

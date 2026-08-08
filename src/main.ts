@@ -20,7 +20,10 @@ import { HistoryLog } from './core/history-log'
 import { HistoryPanel, describeCommand } from './ui/history'
 import { Inspector } from './ui/inspector'
 import { Toolbar } from './ui/toolbar'
+import type { CapabilityTier } from './language/parser'
 import { CommandParser } from './language/parser'
+import type { ModelAvailability } from './language/prompt'
+import { MODEL_LANGUAGE, detectLanguageModel } from './language/prompt'
 import { SpeechInput, isSpeechSupported } from './language/speech'
 
 /** Plain sentences rather than raw permission errors. */
@@ -30,6 +33,34 @@ const CAMERA_NOTICE: Record<HandStatus, string> = {
   running: '',
   denied: 'Camera access was declined. Hand tracking stays off until it is allowed.',
   failed: 'The camera could not be started on this device.',
+}
+
+/** What each tier means for the parser that will handle an utterance. */
+const TIER_PARSER: Record<CapabilityTier, string> = {
+  loading: 'starting',
+  full: "the browser's built-in LanguageModel, with the grammar as a fallback",
+  grammar: 'the deterministic grammar only',
+  manual: 'none — this browser has no speech recognition',
+}
+
+/**
+ * States the voice configuration once, at start-up.
+ *
+ * Which parser is in charge and which language it was asked for are the two
+ * facts that explain almost every "the voice command did nothing" report, and
+ * neither is visible from the outside otherwise.
+ */
+function reportCapabilities(tier: CapabilityTier, availability: ModelAvailability): void {
+  console.info(
+    [
+      '[sleight] voice',
+      `tier=${tier}`,
+      `parser=${TIER_PARSER[tier]}`,
+      `model=${availability}`,
+      `language=${MODEL_LANGUAGE}`,
+      `speech=${isSpeechSupported() ? 'available' : 'unavailable'}`,
+    ].join(' · '),
+  )
 }
 
 /** Hands the serialised page to the browser as a file, with no server round trip. */
@@ -191,7 +222,8 @@ async function start(host: HTMLElement): Promise<void> {
       bus.emit(cmd, 'pointer')
     },
     onGifRequest: request => {
-      void parser.fulfilGif(request).then(cmd => {
+      // Null only during the start-up wait, which the panel is not reachable in.
+      void parser?.fulfilGif(request).then(cmd => {
         if (cmd.op !== 'noop') bus.emit(cmd, 'pointer')
       })
     },
@@ -222,34 +254,14 @@ async function start(host: HTMLElement): Promise<void> {
 
   const gifs = new GifLibrary({ key: import.meta.env.VITE_GIPHY_KEY })
 
-  const parser = await CommandParser.create({
-    getContext: () => {
-      const state = store.getState()
-      return { doc: state.doc, selectedId: state.selectedId }
-    },
-    getLockedKeys: () => bus.lockedKeys(),
-    gifs,
-    onNotice: message => {
-      toolbar.setNotice(message)
-    },
-  })
-
-  const voice = new VoiceAdapter({
-    bus,
-    parse: utterance => parser.parse(utterance),
-    onResult: (utterance, cmd) => {
-      toolbar.setHeard(utterance, cmd.op !== 'noop')
-      // An utterance that matched nothing never reaches the bus, so the log has
-      // to be told about it here or the most diagnostic line would be missing.
-      if (cmd.op === 'noop') log.recordUnheard(utterance, Date.now())
-    },
-  })
-
-  const speech = new SpeechInput({
-    onUtterance: utterance => {
-      void voice.handle(utterance)
-    },
-  })
+  /*
+   * Opening a model session is the one slow step at start-up, and on a cold
+   * profile it can take seconds. The toolbar is therefore built before that
+   * wait rather than after it: every control that does not depend on the model
+   * is usable immediately, and the badge says which state the rest is in.
+   */
+  let parser: CommandParser | null = null
+  let speech: SpeechInput | null = null
 
   const toolbar = new Toolbar({
     host: shell.toolbar,
@@ -257,6 +269,7 @@ async function start(host: HTMLElement): Promise<void> {
     speechSupported: isSpeechSupported(),
     cameraSupported: isCameraSupported(),
     onMicToggle: active => {
+      if (speech === null) return
       if (active) speech.start()
       else speech.stop()
       toolbar.setMicActive(speech.listening)
@@ -287,13 +300,47 @@ async function start(host: HTMLElement): Promise<void> {
       download(exportHtml(store.getState().doc), 'sleight-page.html')
     },
   })
-  toolbar.setTier(parser.tier)
+  toolbar.setTier('loading')
   toolbar.setHistory(store.getState().canUndo, store.getState().canRedo)
   toolbar.setSelection(store.getState().selectedId !== null)
   store.subscribe(state => {
     toolbar.setHistory(state.canUndo, state.canRedo)
     toolbar.setSelection(state.selectedId !== null)
   })
+
+  const availability = await detectLanguageModel()
+  parser = await CommandParser.create({
+    getContext: () => {
+      const state = store.getState()
+      return { doc: state.doc, selectedId: state.selectedId }
+    },
+    getLockedKeys: () => bus.lockedKeys(),
+    gifs,
+    onNotice: message => {
+      toolbar.setNotice(message)
+    },
+  })
+
+  const ready = parser
+  const voice = new VoiceAdapter({
+    bus,
+    parse: utterance => ready.parse(utterance),
+    onResult: (utterance, cmd) => {
+      toolbar.setHeard(utterance, cmd.op !== 'noop')
+      // An utterance that matched nothing never reaches the bus, so the log has
+      // to be told about it here or the most diagnostic line would be missing.
+      if (cmd.op === 'noop') log.recordUnheard(utterance, Date.now())
+    },
+  })
+
+  speech = new SpeechInput({
+    onUtterance: utterance => {
+      void voice.handle(utterance)
+    },
+  })
+
+  toolbar.setTier(ready.tier, `Language ${MODEL_LANGUAGE}.`)
+  reportCapabilities(ready.tier, availability)
 }
 
 const mount = document.querySelector<HTMLDivElement>('#app')
