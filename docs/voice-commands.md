@@ -176,6 +176,12 @@ The GIF lands in the selected block when that block is an image, and in the
 first image block on the canvas otherwise. Each change is its own undo step, so
 `undo` walks back through the results one at a time.
 
+`gif` is a short word with nothing around it to disambiguate, and recognisers
+routinely return `gift`, `jif`, or `jiffy` instead. All of those are accepted
+wherever `gif` is, so `find a gift for a cat` does the same thing as
+`find a gif of a cat`. `of`, `for`, `about`, `with`, and `showing` are all
+accepted as the word before the query.
+
 `change it` and the other browse words only mean anything while a search is
 open. Before a search, and after `keep it`, they fall back to the ordinary
 grammar — which is what stops `change the colour to red` being read as a request
