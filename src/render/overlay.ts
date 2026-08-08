@@ -109,10 +109,10 @@ export class Overlay {
   private width = 0
   private height = 0
   private ratio = 0
-  private guideColor = '#d4380d'
-  private labelInk = '#ffffff'
-  private cursorColor = '#0f766e'
-  private ringColor = 'rgb(15 118 110 / 35%)'
+  private guideColor = ''
+  private labelInk = ''
+  private cursorColor = ''
+  private ringColor = ''
 
   constructor(host: HTMLElement) {
     this.canvas = document.createElement('canvas')
@@ -126,13 +126,18 @@ export class Overlay {
     })
   }
 
-  /** Colours come from the token file so the overlay follows the colour scheme. */
+  /**
+   * Canvas cannot resolve a custom property on its own, so the tokens are read
+   * once here and again whenever the colour scheme changes. No colour is
+   * declared in this file; the token stylesheet remains the only source.
+   */
   private readTokens(): void {
     const styles = getComputedStyle(this.canvas)
-    this.guideColor = styles.getPropertyValue('--sl-guide').trim() || this.guideColor
-    this.labelInk = styles.getPropertyValue('--sl-text-inverse').trim() || this.labelInk
-    this.cursorColor = styles.getPropertyValue('--sl-cursor').trim() || this.cursorColor
-    this.ringColor = styles.getPropertyValue('--sl-cursor-ring').trim() || this.ringColor
+    const token = (name: string): string => styles.getPropertyValue(name).trim() || styles.color
+    this.guideColor = token('--sl-guide')
+    this.labelInk = token('--sl-text-inverse')
+    this.cursorColor = token('--sl-cursor')
+    this.ringColor = token('--sl-cursor-ring')
   }
 
   /**
