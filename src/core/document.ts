@@ -1,4 +1,6 @@
-import type { Align, Block, BlockProps, BlockType, DocumentState } from './types'
+import type { Align, Block, BlockProps, BlockType, DocCommand, DocumentState } from './types'
+
+export type InsertCommand = Extract<DocCommand, { op: 'insert' }>
 
 export const ROOT_ID = 'root'
 
@@ -173,6 +175,49 @@ export function absoluteOrigin(doc: DocumentState, id: string): { x: number; y: 
     cursor = getParent(doc, cursor)
   }
   return { x, y }
+}
+
+/** Gap left between a new block and the one it is stacked under. */
+const STACK_GAP = 24
+const STACK_MARGIN = 48
+
+/**
+ * The first free id for a type. Ids are readable rather than random because the
+ * language model is shown the id list and asked to pick one from it, and `h2-3`
+ * is a far better handle for that than an opaque token.
+ */
+export function nextBlockId(doc: DocumentState, type: BlockType): string {
+  let n = 1
+  while (doc.blocks[`${type}-${String(n)}`] !== undefined) n += 1
+  return `${type}-${String(n)}`
+}
+
+/**
+ * Stacks a new block under the lowest one already on the canvas. Placing every
+ * insert at a fixed origin would bury each new block under the last, which is
+ * exactly the case where the block cannot be grabbed to move it off the pile.
+ */
+function nextSlot(doc: DocumentState, height: number): { x: number; y: number } {
+  let bottom = 0
+  for (const id of getChildren(doc, doc.rootId)) {
+    const block = getBlock(doc, id)
+    if (block !== undefined) bottom = Math.max(bottom, block.props.y + block.props.h)
+  }
+
+  const y = bottom === 0 ? STACK_MARGIN : bottom + STACK_GAP
+  const canvasHeight = getBlock(doc, doc.rootId)?.props.h ?? 0
+  // Past the bottom edge the block would be off screen with no way to reach it,
+  // so the stack folds back to the last row that still fits.
+  const limit = Math.max(STACK_MARGIN, canvasHeight - height - STACK_GAP)
+  return { x: STACK_MARGIN, y: Math.min(y, limit) }
+}
+
+/** A ready-to-emit insert for a new block of `type`, appended to the canvas. */
+export function insertCommand(doc: DocumentState, type: BlockType): InsertCommand {
+  const size = defaultProps(type)
+  const slot = nextSlot(doc, size.h)
+  const block = createBlock(nextBlockId(doc, type), type, TYPE_LABELS[type], slot)
+  return { op: 'insert', parent: doc.rootId, block, index: getChildren(doc, doc.rootId).length }
 }
 
 export function isAlign(value: unknown): value is Align {
