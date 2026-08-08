@@ -136,6 +136,116 @@ describe('alignment', () => {
   })
 })
 
+describe('naming the block a command acts on', () => {
+  it('retargets a property away from the selection', () => {
+    expect(parseGrammar('change the image width to 300', context)).toEqual({
+      op: 'set',
+      id: 'shot',
+      path: 'w',
+      value: 300,
+    })
+  })
+
+  it('reads a possessive as the block', () => {
+    expect(parseGrammar("set the intro copy's color to navy", context)).toEqual({
+      op: 'set',
+      id: 'intro',
+      path: 'color',
+      value: '#1e3a5f',
+    })
+  })
+
+  it('keeps text colour a property rather than a text block', () => {
+    expect(parseGrammar('change the text color to teal', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'color',
+      value: '#0f766e',
+    })
+  })
+
+  it('accepts an ordinal target', () => {
+    expect(parseGrammar('make the second block wider', context)).toEqual({
+      op: 'nudge',
+      id: 'intro',
+      path: 'w',
+      delta: VOICE_SIZE_STEP_PX,
+    })
+  })
+
+  it('resizes the type of a named block', () => {
+    expect(parseGrammar('make the intro copy text smaller', context)).toEqual({
+      op: 'nudge',
+      id: 'intro',
+      path: 'fontSize',
+      delta: -VOICE_FONT_STEP_PX,
+    })
+  })
+
+  it('aligns a named block', () => {
+    expect(parseGrammar('align the image to the right', context)).toEqual({
+      op: 'set',
+      id: 'shot',
+      path: 'align',
+      value: 'right',
+    })
+    expect(parseGrammar('centre the hero', context)).toEqual({
+      op: 'set',
+      id: 'hero',
+      path: 'align',
+      value: 'center',
+    })
+  })
+
+  it('works with nothing selected once a block is named', () => {
+    expect(parseGrammar('make the image wider', unselected)).toEqual({
+      op: 'nudge',
+      id: 'shot',
+      path: 'w',
+      delta: VOICE_SIZE_STEP_PX,
+    })
+  })
+
+  it('still falls back to the selection when no block is named', () => {
+    expect(parseGrammar('make it wider', context)).toEqual({
+      op: 'nudge',
+      id: 'hero',
+      path: 'w',
+      delta: VOICE_SIZE_STEP_PX,
+    })
+  })
+
+  it('refuses a block that is not on the canvas', () => {
+    expect(parseGrammar('change the sidebar color to teal', context)).toEqual({ op: 'noop' })
+  })
+})
+
+describe('deletion', () => {
+  it('deletes the selection', () => {
+    expect(parseGrammar('delete it', context)).toEqual({ op: 'remove', id: 'hero' })
+    expect(parseGrammar('remove this', context)).toEqual({ op: 'remove', id: 'hero' })
+    expect(parseGrammar('delete', context)).toEqual({ op: 'remove', id: 'hero' })
+  })
+
+  it('deletes a named block', () => {
+    expect(parseGrammar('delete the image', context)).toEqual({ op: 'remove', id: 'shot' })
+    expect(parseGrammar('get rid of the last block', context)).toEqual({
+      op: 'remove',
+      id: 'shot',
+    })
+  })
+
+  it('does nothing with no selection and no name', () => {
+    expect(parseGrammar('delete', unselected)).toEqual({ op: 'noop' })
+    expect(parseGrammar('delete the sidebar', context)).toEqual({ op: 'noop' })
+  })
+
+  it('cannot reach the canvas itself', () => {
+    expect(parseGrammar('delete the canvas', context)).toEqual({ op: 'noop' })
+    expect(parseGrammar('delete the root', context)).toEqual({ op: 'noop' })
+  })
+})
+
 describe('history and selection', () => {
   it('parses undo and redo', () => {
     expect(parseGrammar('undo', context)).toEqual({ op: 'undo' })
