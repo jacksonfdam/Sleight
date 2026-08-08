@@ -1,5 +1,7 @@
 import './ui/tokens.css'
 import './ui/shell.css'
+import { PointerAdapter } from './adapters/pointer'
+import { IntentBus } from './core/bus'
 import { starterDocument } from './core/document'
 import { Store } from './core/store'
 import { Renderer } from './render/renderer'
@@ -39,12 +41,18 @@ function buildShell(host: HTMLElement): Shell {
 function start(host: HTMLElement): void {
   const shell = buildShell(host)
   const store = new Store(starterDocument())
+  const bus = new IntentBus()
   const renderer = new Renderer(shell.canvasHost)
 
+  bus.subscribe(intent => {
+    store.apply(intent.cmd, intent.txn, intent.ts)
+  })
   store.subscribe(state => {
     renderer.render(state)
   })
   renderer.render(store.getState())
+
+  new PointerAdapter({ surface: shell.stage, bus }).attach()
 }
 
 const mount = document.querySelector<HTMLDivElement>('#app')
