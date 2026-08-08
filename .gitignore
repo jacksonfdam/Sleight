@@ -4,3 +4,4 @@ coverage
 .vercel
 .DS_Store
 *.local
+public/models/wasm

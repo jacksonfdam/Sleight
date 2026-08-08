@@ -6,7 +6,9 @@
   "description": "Multimodal block layout editor driven by pointer, hand tracking, and voice",
   "license": "MIT",
   "scripts": {
+    "predev": "node scripts/copy-vision-assets.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/copy-vision-assets.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
