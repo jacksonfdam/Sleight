@@ -7,9 +7,21 @@ const TEXT_CLASS = 'sl-block__text'
 const IMAGE_CLASS = 'sl-block__image'
 const PLACEHOLDER_CLASS = 'sl-block__placeholder'
 
+/** Attribute every hit test reads. Stripped on export. */
+export const BLOCK_ATTR = 'data-block-id'
+
+/** Walks up from an arbitrary node to the block element that owns it. */
+export function blockIdAt(node: EventTarget | Node | null): string | null {
+  if (!(node instanceof Element)) return null
+  const owner = node.closest(`[${BLOCK_ATTR}]`)
+  return owner?.getAttribute(BLOCK_ATTR) ?? null
+}
+
 function createElement(block: Block): HTMLElement {
   const el = document.createElement('div')
   el.className = `sl-block sl-block--${block.type}`
+  el.setAttribute(BLOCK_ATTR, block.id)
+  el.dataset['blockType'] = block.type
   if (block.type === 'image') {
     const img = document.createElement('img')
     img.className = IMAGE_CLASS
@@ -126,6 +138,7 @@ export class Renderer {
   private createRoot(block: Block): HTMLElement {
     const el = document.createElement('div')
     el.className = 'sl-canvas'
+    el.setAttribute(BLOCK_ATTR, block.id)
     applyRootProps(el, block)
     this.host.append(el)
     return el
