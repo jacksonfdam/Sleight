@@ -81,6 +81,47 @@ each is switched independently of the others.
 `remove` is always about the style. A block would have to be labelled Underline
 for that to be ambiguous, and even then the style wins.
 
+## Resizing by a multiple
+
+Separate from the step commands above: these multiply the current size rather
+than adding a fixed number of pixels. The box scales about its centre, so a
+block grows in place rather than towards the bottom right.
+
+| Say                               | Effect                                |
+| --------------------------------- | ------------------------------------- |
+| `double the size` / `double it`   | Twice as large                        |
+| `triple the size`                 | Three times as large                  |
+| `halve it` / `half the size`      | Half as large                         |
+| `increase the size by 50 percent` | 1.5× — `by` is a step                 |
+| `reduce the size by 25%`          | 0.75×                                 |
+| `make it 150 percent`             | 1.5× — a bare figure is a destination |
+
+Naming the type scales the type instead, leaving the box alone:
+
+| Say                                    | Effect              |
+| -------------------------------------- | ------------------- |
+| `double the font size`                 | Twice the type size |
+| `triple the text size`                 | Three times         |
+| `increase the font size by 50 percent` | 1.5× the type size  |
+| `halve the type size`                  | Half the type size  |
+
+`by` and `to` mean different things. `by 50 percent` is a step from where the
+block is now; `to 150 percent` and a bare `150 percent` are a destination.
+
+## Centring on the canvas
+
+This is a position, not a text alignment, and the two share a verb. An axis has
+to be named — without one the phrase still means the text.
+
+| Say                                     | Effect                   |
+| --------------------------------------- | ------------------------ |
+| `center it horizontally`                | Centres left to right    |
+| `centre it vertically`                  | Centres top to bottom    |
+| `center it on the canvas`               | Both axes                |
+| `center it horizontally and vertically` | Both axes                |
+| `center the image vertically`           | Centres the named block  |
+| `center it`                             | Still centres the _text_ |
+
 ## Alignment
 
 | Say                             | Effect                  |

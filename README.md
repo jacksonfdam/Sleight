@@ -341,44 +341,48 @@ punctuation are stripped before parsing, and anything that does not match
 produces no command at all rather than a guess — so conversation near an open
 microphone does not edit the document.
 
-| Say                                               | Effect                                     |
-| ------------------------------------------------- | ------------------------------------------ |
-| `change the text color to teal`                   | Sets the text colour                       |
-| `change the colour to navy`                       | Same, British spelling accepted            |
-| `set the color to #ff8800`                        | Accepts a hex literal, three or six digits |
-| `change the font size to 32`                      | Sets type size in pixels                   |
-| `set the width to 500`                            | Sets width in pixels                       |
-| `set the height to 240`                           | Sets height in pixels                      |
-| `make it bigger` / `make it wider`                | Widens the block                           |
-| `make it smaller` / `make it narrower`            | Narrows the block                          |
-| `make it taller` / `make it shorter`              | Changes height                             |
-| `make the text bigger` / `make the text smaller`  | Changes type size, not the box             |
-| `align left` / `align center` / `align right`     | Sets alignment                             |
-| `center it`                                       | Centres the text                           |
-| `select the hero` / `select the image`            | Selects the first block of that type       |
-| `select the second heading`                       | Counts blocks of that type in canvas order |
-| `select the last paragraph`                       | Takes the final one instead of the first   |
-| `select intro copy`                               | Matches the block's label                  |
-| `select the next block` / `select the previous`   | Walks the canvas, wrapping at the ends     |
-| `deselect`                                        | Clears the selection                       |
-| `add a heading` / `add an h3`                     | Inserts a heading; a bare heading is an h1 |
-| `add a paragraph` / `insert a picture`            | Inserts a block of that type               |
-| `delete it` / `remove this`                       | Deletes the selection                      |
-| `delete the image` / `get rid of the last block`  | Deletes the block that is named            |
-| `make the second heading wider`                   | Acts on a named block, not the selection   |
-| `change the image's width to 300`                 | A possessive names the block too           |
-| `rotate it 30 degrees`                            | Turns by a step; `to 90` turns to an angle |
-| `rotate the image left 45 degrees`                | Turns the other way                        |
-| `straighten it`                                   | Returns the block to level                 |
-| `bold it` / `make it italic` / `underline it`     | Switches a text style on                   |
-| `unbold it` / `remove the underline`              | Switches one off                           |
-| `find a gif of a cat`                             | Fills the image block from a search        |
-| `change it` / `another one`                       | The next result for the same search        |
-| `randomize` / `surprise me`                       | Any other result for the same search       |
-| `keep it`                                         | Ends the browse and keeps what is showing  |
-| `undo` / `redo`                                   | Moves through history                      |
-| `change the text to Welcome aboard`               | Replaces the block's text                  |
-| `set the source to https://example.com/photo.jpg` | Points an image block at a URL             |
+| Say                                                | Effect                                     |
+| -------------------------------------------------- | ------------------------------------------ |
+| `change the text color to teal`                    | Sets the text colour                       |
+| `change the colour to navy`                        | Same, British spelling accepted            |
+| `set the color to #ff8800`                         | Accepts a hex literal, three or six digits |
+| `change the font size to 32`                       | Sets type size in pixels                   |
+| `set the width to 500`                             | Sets width in pixels                       |
+| `set the height to 240`                            | Sets height in pixels                      |
+| `make it bigger` / `make it wider`                 | Widens the block                           |
+| `make it smaller` / `make it narrower`             | Narrows the block                          |
+| `make it taller` / `make it shorter`               | Changes height                             |
+| `make the text bigger` / `make the text smaller`   | Changes type size, not the box             |
+| `align left` / `align center` / `align right`      | Sets alignment                             |
+| `center it`                                        | Centres the text                           |
+| `select the hero` / `select the image`             | Selects the first block of that type       |
+| `select the second heading`                        | Counts blocks of that type in canvas order |
+| `select the last paragraph`                        | Takes the final one instead of the first   |
+| `select intro copy`                                | Matches the block's label                  |
+| `select the next block` / `select the previous`    | Walks the canvas, wrapping at the ends     |
+| `deselect`                                         | Clears the selection                       |
+| `add a heading` / `add an h3`                      | Inserts a heading; a bare heading is an h1 |
+| `add a paragraph` / `insert a picture`             | Inserts a block of that type               |
+| `delete it` / `remove this`                        | Deletes the selection                      |
+| `delete the image` / `get rid of the last block`   | Deletes the block that is named            |
+| `make the second heading wider`                    | Acts on a named block, not the selection   |
+| `change the image's width to 300`                  | A possessive names the block too           |
+| `double the size` / `triple the size` / `halve it` | Multiplies the box about its centre        |
+| `increase the size by 50 percent`                  | A step; `to 150 percent` is a destination  |
+| `double the font size`                             | Multiplies the type, not the box           |
+| `center it horizontally` / `on the canvas`         | Positions the block; `center it` is text   |
+| `rotate it 30 degrees`                             | Turns by a step; `to 90` turns to an angle |
+| `rotate the image left 45 degrees`                 | Turns the other way                        |
+| `straighten it`                                    | Returns the block to level                 |
+| `bold it` / `make it italic` / `underline it`      | Switches a text style on                   |
+| `unbold it` / `remove the underline`               | Switches one off                           |
+| `find a gif of a cat`                              | Fills the image block from a search        |
+| `change it` / `another one`                        | The next result for the same search        |
+| `randomize` / `surprise me`                        | Any other result for the same search       |
+| `keep it`                                          | Ends the browse and keeps what is showing  |
+| `undo` / `redo`                                    | Moves through history                      |
+| `change the text to Welcome aboard`                | Replaces the block's text                  |
+| `set the source to https://example.com/photo.jpg`  | Points an image block at a URL             |
 
 A target can be named four ways, tried in that order: a pronoun (`it`, `this`),
 a position (`first`, `last`, `next`, `previous`), a type with an optional
