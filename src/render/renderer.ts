@@ -63,6 +63,7 @@ function applyRootProps(el: HTMLElement, block: Block): void {
 export class Renderer {
   private readonly elements = new Map<string, HTMLElement>()
   private readonly host: HTMLElement
+  private prev: EditorState | null = null
 
   constructor(host: HTMLElement) {
     this.host = host
@@ -73,15 +74,31 @@ export class Renderer {
     return this.elements.get(id)
   }
 
+  /**
+   * The reducer returns the identical `Block` reference for anything it did not
+   * touch, so a reference comparison is enough to skip the write. This keeps a
+   * drag that moves one block from rewriting the styles of every other block.
+   */
   render(state: EditorState): void {
-    const { doc } = state
-    this.sync(doc)
-    this.place(doc)
-    this.mark(state)
+    const prev = this.prev
+    if (prev === null || prev.doc !== state.doc) {
+      this.sync(state.doc, prev?.doc ?? null)
+    }
+    if (prev === null || prev.doc.children !== state.doc.children) {
+      this.place(state.doc)
+    }
+    if (
+      prev === null ||
+      prev.selectedId !== state.selectedId ||
+      prev.hoveredId !== state.hoveredId
+    ) {
+      this.mark(state, prev)
+    }
+    this.prev = state
   }
 
   /** Create and destroy elements so the map mirrors the document exactly. */
-  private sync(doc: DocumentState): void {
+  private sync(doc: DocumentState, prev: DocumentState | null): void {
     const live = new Set(subtreeIds(doc, doc.rootId))
 
     for (const [id, el] of this.elements) {
@@ -98,6 +115,8 @@ export class Renderer {
       if (el === undefined) {
         el = id === doc.rootId ? this.createRoot(block) : createElement(block)
         this.elements.set(id, el)
+      } else if (prev?.blocks[id] === block) {
+        continue
       }
       if (id === doc.rootId) applyRootProps(el, block)
       else applyProps(el, block)
@@ -124,8 +143,14 @@ export class Renderer {
     }
   }
 
-  private mark(state: EditorState): void {
-    for (const [id, el] of this.elements) {
+  private mark(state: EditorState, prev: EditorState | null): void {
+    const touched = new Set<string>()
+    for (const id of [prev?.selectedId, prev?.hoveredId, state.selectedId, state.hoveredId]) {
+      if (typeof id === 'string') touched.add(id)
+    }
+    for (const id of touched) {
+      const el = this.elements.get(id)
+      if (el === undefined) continue
       el.classList.toggle('is-selected', id === state.selectedId)
       el.classList.toggle('is-hovered', id === state.hoveredId && id !== state.selectedId)
     }
