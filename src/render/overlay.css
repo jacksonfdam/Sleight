@@ -1,0 +1,10 @@
+/*
+ * The overlay is a sibling of the document canvas, not a child, so nothing drawn
+ * on it can ever be serialised into the export.
+ */
+.sl-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}

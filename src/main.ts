@@ -4,6 +4,7 @@ import { PointerAdapter } from './adapters/pointer'
 import { IntentBus } from './core/bus'
 import { starterDocument } from './core/document'
 import { Store } from './core/store'
+import { Overlay } from './render/overlay'
 import { Renderer } from './render/renderer'
 
 interface Shell {
@@ -43,14 +44,24 @@ function start(host: HTMLElement): void {
   const store = new Store(starterDocument())
   const bus = new IntentBus()
   const renderer = new Renderer(shell.canvasHost)
+  const overlay = new Overlay(shell.canvasHost)
 
   bus.subscribe(intent => {
     store.apply(intent.cmd, intent.txn, intent.ts)
   })
+  const draw = (): void => {
+    const state = store.getState()
+    const root = state.doc.blocks[state.doc.rootId]
+    if (root) overlay.resize(root.props.w, root.props.h)
+    overlay.clear()
+    requestAnimationFrame(draw)
+  }
+
   store.subscribe(state => {
     renderer.render(state)
   })
   renderer.render(store.getState())
+  requestAnimationFrame(draw)
 
   new PointerAdapter({ surface: shell.stage, bus }).attach()
 }
