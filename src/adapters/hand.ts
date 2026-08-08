@@ -22,9 +22,20 @@ export interface HandCursor {
 
 export type HandStatus = 'off' | 'starting' | 'running' | 'denied' | 'failed'
 
+/**
+ * The slice of the worker interface this adapter uses. Depending on the narrow
+ * shape rather than on `Worker` keeps the gesture logic testable with synthetic
+ * samples, no camera and no inference involved.
+ */
+export interface HandWorkerLike {
+  postMessage(message: HandRequest, transfer?: Transferable[]): void
+  onmessage: ((event: MessageEvent<HandResponse>) => void) | null
+  terminate(): void
+}
+
 export interface HandAdapterOptions {
   readonly bus: IntentBus
-  readonly worker: Worker
+  readonly worker: HandWorkerLike
   readonly surface: HTMLElement
   readonly wasmPath: string
   readonly modelPath: string
@@ -139,10 +150,9 @@ export class HandAdapter {
       this.inFlight = true
       createImageBitmap(this.video)
         .then(bitmap => {
-          this.options.worker.postMessage(
-            { type: 'frame', bitmap, timestamp: performance.now() } satisfies HandRequest,
-            [bitmap],
-          )
+          this.options.worker.postMessage({ type: 'frame', bitmap, timestamp: performance.now() }, [
+            bitmap,
+          ])
         })
         .catch(() => {
           this.inFlight = false
@@ -151,7 +161,8 @@ export class HandAdapter {
     this.frameHandle = requestAnimationFrame(step)
   }
 
-  private receive(response: HandResponse): void {
+  /** Entry point for a worker sample. Exposed so tests can inject one directly. */
+  receive(response: HandResponse): void {
     switch (response.type) {
       case 'ready':
         this.ready = true

@@ -1,3 +1,4 @@
+import type { TimerHandle } from '../core/bus'
 import { VOICE_PAUSE_MS } from '../tuning'
 
 export type SpeechStatus = 'unavailable' | 'idle' | 'listening'
@@ -24,7 +25,7 @@ export function isSpeechSupported(): boolean {
 export class SpeechInput {
   private readonly options: SpeechOptions
   private recognition: SpeechRecognitionLike | null = null
-  private pauseTimer: number | null = null
+  private pauseTimer: TimerHandle | null = null
   private pendingText = ''
   private lastEmitted = ''
   private wanted = false

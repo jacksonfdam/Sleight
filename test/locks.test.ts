@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import type { TimerHandle } from '../src/core/bus'
 import { IntentBus } from '../src/core/bus'
 import { createBlock, emptyDocument } from '../src/core/document'
 import { GROUP, LockTable, keyFor, lockKey } from '../src/core/locks'
@@ -10,16 +11,16 @@ import { LOCK_TTL_MS } from '../src/tuning'
 /** A hand-wound clock and timer queue, so expiry is exercised without waiting. */
 class Harness {
   now = 0
-  private readonly timers = new Map<number, { due: number; fn: () => void }>()
+  private readonly timers = new Map<TimerHandle, { due: number; fn: () => void }>()
   private nextHandle = 1
 
   readonly clock = (): number => this.now
-  readonly setTimer = (fn: () => void, ms: number): number => {
-    const handle = this.nextHandle++
+  readonly setTimer = (fn: () => void, ms: number): TimerHandle => {
+    const handle = this.nextHandle++ as unknown as TimerHandle
     this.timers.set(handle, { due: this.now + ms, fn })
     return handle
   }
-  readonly clearTimer = (handle: number): void => {
+  readonly clearTimer = (handle: TimerHandle): void => {
     this.timers.delete(handle)
   }
 

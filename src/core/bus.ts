@@ -4,6 +4,9 @@ import type { Command, Intent, IntentSource } from './types'
 
 export type IntentHandler = (intent: Intent) => void
 
+/** Whatever the host's timer functions hand back, browser or test runner. */
+export type TimerHandle = ReturnType<typeof setTimeout>
+
 let transactionCounter = 0
 
 /**
@@ -20,8 +23,8 @@ export interface IntentBusOptions {
   readonly clock?: () => number
   readonly locks?: LockTable
   /** Injected so tests can drive expiry without a real timer. */
-  readonly setTimer?: (fn: () => void, ms: number) => number
-  readonly clearTimer?: (handle: number) => void
+  readonly setTimer?: (fn: () => void, ms: number) => TimerHandle
+  readonly clearTimer?: (handle: TimerHandle) => void
 }
 
 /**
@@ -34,9 +37,9 @@ export class IntentBus {
   private readonly deferred: Intent[] = []
   private readonly locks: LockTable
   private readonly clock: () => number
-  private readonly setTimer: (fn: () => void, ms: number) => number
-  private readonly clearTimer: (handle: number) => void
-  private sweepTimer: number | null = null
+  private readonly setTimer: (fn: () => void, ms: number) => TimerHandle
+  private readonly clearTimer: (handle: TimerHandle) => void
+  private sweepTimer: TimerHandle | null = null
 
   constructor(options: IntentBusOptions = {}) {
     this.clock = options.clock ?? (() => Date.now())
