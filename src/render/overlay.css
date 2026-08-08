@@ -6,5 +6,11 @@
   position: absolute;
   top: 0;
   left: 0;
+  /*
+   * The overlay is created before the document canvas exists, so it sits first
+   * in DOM order. Without an explicit stacking order the opaque canvas would
+   * paint straight over every guide and cursor drawn here.
+   */
+  z-index: 1;
   pointer-events: none;
 }
