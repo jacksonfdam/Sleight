@@ -8,7 +8,7 @@ import { Store } from './core/store'
 import { Overlay, computeGuides } from './render/overlay'
 import { Renderer } from './render/renderer'
 import { Toolbar } from './ui/toolbar'
-import { parseGrammar } from './language/grammar'
+import { CommandParser } from './language/parser'
 import { SpeechInput, isSpeechSupported } from './language/speech'
 
 interface Shell {
@@ -43,7 +43,7 @@ function buildShell(host: HTMLElement): Shell {
   return { toolbar, stage, canvasHost, inspector, status }
 }
 
-function start(host: HTMLElement): void {
+async function start(host: HTMLElement): Promise<void> {
   const shell = buildShell(host)
   const store = new Store(starterDocument())
   const bus = new IntentBus()
@@ -70,14 +70,17 @@ function start(host: HTMLElement): void {
 
   new PointerAdapter({ surface: shell.stage, bus }).attach()
 
+  const parser = await CommandParser.create({
+    getContext: () => {
+      const state = store.getState()
+      return { doc: state.doc, selectedId: state.selectedId }
+    },
+    getLockedKeys: () => bus.lockedKeys(),
+  })
+
   const voice = new VoiceAdapter({
     bus,
-    parse: utterance => {
-      const state = store.getState()
-      return Promise.resolve(
-        parseGrammar(utterance, { doc: state.doc, selectedId: state.selectedId }),
-      )
-    },
+    parse: utterance => parser.parse(utterance),
   })
 
   const speech = new SpeechInput({
@@ -88,6 +91,7 @@ function start(host: HTMLElement): void {
 
   const toolbar = new Toolbar({
     host: shell.toolbar,
+    statusHost: shell.status,
     speechSupported: isSpeechSupported(),
     onMicToggle: active => {
       if (active) speech.start()
@@ -95,7 +99,8 @@ function start(host: HTMLElement): void {
       toolbar.setMicActive(speech.listening)
     },
   })
+  toolbar.setTier(parser.tier)
 }
 
 const mount = document.querySelector<HTMLDivElement>('#app')
-if (mount) start(mount)
+if (mount) void start(mount)

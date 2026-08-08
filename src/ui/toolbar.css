@@ -51,3 +51,23 @@
     animation: none;
   }
 }
+
+.sl-badge {
+  padding: 3px 8px;
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-size-sm);
+  letter-spacing: 0.02em;
+  background: var(--sl-surface-sunken);
+  border: 1px solid var(--sl-border);
+  border-radius: 999px;
+}
+
+.sl-badge[data-tier='full'] {
+  color: var(--sl-ok);
+  border-color: currentcolor;
+}
+
+.sl-badge[data-tier='grammar'] {
+  color: var(--sl-warning);
+  border-color: currentcolor;
+}
