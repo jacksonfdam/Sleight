@@ -31,7 +31,7 @@ function escapeHtml(value: string): string {
 
 function styleFor(block: Block): string {
   const { props } = block
-  return [
+  const rules = [
     `left:${String(props.x)}px`,
     `top:${String(props.y)}px`,
     `width:${String(props.w)}px`,
@@ -39,7 +39,9 @@ function styleFor(block: Block): string {
     `color:${props.color}`,
     `font-size:${String(props.fontSize)}px`,
     `text-align:${props.align}`,
-  ].join(';')
+  ]
+  if (props.rotation !== 0) rules.push(`transform:rotate(${String(props.rotation)}deg)`)
+  return rules.join(';')
 }
 
 function textMarkup(block: Block): string {

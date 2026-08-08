@@ -10,8 +10,19 @@ export type CapabilityTier = 'full' | 'grammar' | 'manual'
 
 const NOOP: Command = { op: 'noop' }
 
-const PATHS: readonly PropPath[] = ['x', 'y', 'w', 'h', 'color', 'fontSize', 'align', 'src', 'text']
-const NUMERIC: readonly NumericPath[] = ['x', 'y', 'w', 'h', 'fontSize']
+const PATHS: readonly PropPath[] = [
+  'x',
+  'y',
+  'w',
+  'h',
+  'rotation',
+  'color',
+  'fontSize',
+  'align',
+  'src',
+  'text',
+]
+const NUMERIC: readonly NumericPath[] = ['x', 'y', 'w', 'h', 'fontSize', 'rotation']
 
 function isPropPath(value: unknown): value is PropPath {
   return typeof value === 'string' && (PATHS as readonly string[]).includes(value)

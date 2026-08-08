@@ -13,6 +13,9 @@ export const GROUP: Record<PropPath, PropGroup> = {
   y: 'geom',
   w: 'geom',
   h: 'geom',
+  // Rotation is geometry: a hand dragging a block and a voice turning it are
+  // both moving the same box, so they have to contend for the same lock.
+  rotation: 'geom',
   color: 'style',
   fontSize: 'style',
   align: 'style',

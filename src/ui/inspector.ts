@@ -17,6 +17,7 @@ const GEOMETRY: readonly FieldSpec[] = [
   { path: 'y', label: 'Y', kind: 'number' },
   { path: 'w', label: 'Width', kind: 'number' },
   { path: 'h', label: 'Height', kind: 'number' },
+  { path: 'rotation', label: 'Rotation', kind: 'number' },
 ]
 
 const TYPOGRAPHY: readonly FieldSpec[] = [
@@ -102,6 +103,7 @@ function commandFor(id: string, spec: FieldSpec, raw: string): Command | null {
     case 'y':
     case 'w':
     case 'h':
+    case 'rotation':
     case 'fontSize': {
       const value = Number.parseInt(raw, 10)
       return Number.isFinite(value) ? { op: 'set', id, path: spec.path, value } : null

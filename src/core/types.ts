@@ -18,6 +18,8 @@ export interface BlockProps {
   readonly y: number
   readonly w: number
   readonly h: number
+  /** Clockwise degrees about the block's centre, normalised to 0 through 359. */
+  readonly rotation: number
   readonly color: string
   readonly fontSize: number
   readonly align: Align
@@ -25,10 +27,20 @@ export interface BlockProps {
   readonly text: string
 }
 
-export type PropPath = 'x' | 'y' | 'w' | 'h' | 'color' | 'fontSize' | 'align' | 'src' | 'text'
+export type PropPath =
+  | 'x'
+  | 'y'
+  | 'w'
+  | 'h'
+  | 'rotation'
+  | 'color'
+  | 'fontSize'
+  | 'align'
+  | 'src'
+  | 'text'
 
 /** Paths whose values can be shifted by a relative delta. */
-export type NumericPath = 'x' | 'y' | 'w' | 'h' | 'fontSize'
+export type NumericPath = 'x' | 'y' | 'w' | 'h' | 'fontSize' | 'rotation'
 
 export type PropValue = BlockProps[PropPath]
 

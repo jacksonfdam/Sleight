@@ -9,6 +9,7 @@ const BASE_PROPS: BlockProps = {
   y: 0,
   w: 320,
   h: 160,
+  rotation: 0,
   color: '#1f2933',
   fontSize: 16,
   align: 'left',

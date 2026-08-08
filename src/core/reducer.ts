@@ -6,7 +6,10 @@ import type { Block, BlockProps, DocCommand, DocumentState, NumericPath, SetComm
  * or a bad model response cannot produce a block that is impossible to grab
  * again with the pointer.
  */
-const LIMITS: Record<NumericPath, { readonly min: number; readonly max: number }> = {
+/** Every numeric path except the one that wraps instead of stopping. */
+type ClampedPath = Exclude<NumericPath, 'rotation'>
+
+const LIMITS: Record<ClampedPath, { readonly min: number; readonly max: number }> = {
   x: { min: -4000, max: 8000 },
   y: { min: -4000, max: 8000 },
   w: { min: 16, max: 4000 },
@@ -14,13 +17,28 @@ const LIMITS: Record<NumericPath, { readonly min: number; readonly max: number }
   fontSize: { min: 8, max: 200 },
 }
 
-function clamp(path: NumericPath, value: number): number {
+function clamp(path: ClampedPath, value: number): number {
   const limit = LIMITS[path]
   if (!Number.isFinite(value)) return limit.min
   return Math.min(limit.max, Math.max(limit.min, Math.round(value)))
 }
 
+/**
+ * Rotation wraps rather than clamping. Nudging past a full turn should carry on
+ * turning, and a clamp at 360 would leave a block stuck one degree short of
+ * where it started with no way to nudge past it.
+ */
+function normaliseAngle(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  const wrapped = Math.round(value) % 360
+  return wrapped < 0 ? wrapped + 360 : wrapped
+}
+
 function writeNumeric(props: BlockProps, path: NumericPath, raw: number): BlockProps {
+  if (path === 'rotation') {
+    const angle = normaliseAngle(raw)
+    return props.rotation === angle ? props : { ...props, rotation: angle }
+  }
   const value = clamp(path, raw)
   switch (path) {
     case 'x':
@@ -42,6 +60,7 @@ function applySet(props: BlockProps, cmd: SetCommand): BlockProps {
     case 'y':
     case 'w':
     case 'h':
+    case 'rotation':
     case 'fontSize':
       return writeNumeric(props, cmd.path, cmd.value)
     case 'color':

@@ -80,6 +80,9 @@ function applyProps(el: HTMLElement, block: Block): void {
   el.style.top = `${String(props.y)}px`
   el.style.width = `${String(props.w)}px`
   el.style.height = `${String(props.h)}px`
+  // An empty string rather than `rotate(0deg)`, so an unrotated block carries no
+  // transform at all and cannot create a containing block for anything inside it.
+  el.style.transform = props.rotation === 0 ? '' : `rotate(${String(props.rotation)}deg)`
   el.style.color = props.color
   el.style.fontSize = `${String(props.fontSize)}px`
   el.style.textAlign = props.align

@@ -181,7 +181,8 @@ function setCommand(id: string, path: PropPath, raw: string): Command {
     case 'w':
     case 'h':
     case 'x':
-    case 'y': {
+    case 'y':
+    case 'rotation': {
       const value = resolveNumber(raw)
       return value === null ? NOOP : { op: 'set', id, path, value }
     }

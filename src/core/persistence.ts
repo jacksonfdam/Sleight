@@ -25,6 +25,7 @@ function readProps(value: unknown): BlockProps {
     y: number(record['y'], 0),
     w: number(record['w'], 160),
     h: number(record['h'], 80),
+    rotation: number(record['rotation'], 0),
     color: text(record['color'], '#16202a'),
     fontSize: number(record['fontSize'], 16),
     align: isAlign(align) ? align : 'left',
