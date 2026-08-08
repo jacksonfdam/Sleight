@@ -106,13 +106,42 @@ describe('building an insert', () => {
     expect(cmd.block.props.y).toBeGreaterThan(lowest)
   })
 
-  it('keeps the new block inside the canvas', () => {
+  it('keeps every block inside the canvas however full it gets', () => {
     let base = starterDocument()
-    for (let i = 0; i < 8; i += 1) base = reduce(base, insertCommand(base, 'h1'))
+    for (let i = 0; i < 12; i += 1) base = reduce(base, insertCommand(base, 'h4'))
     const root = base.blocks[base.rootId]
     for (const block of Object.values(base.blocks)) {
       if (block.id === base.rootId) continue
       expect(block.props.y + block.props.h).toBeLessThanOrEqual(root?.props.h ?? 0)
+      expect(block.props.x + block.props.w).toBeLessThanOrEqual(root?.props.w ?? 0)
+    }
+  })
+
+  it('moves to the next column once one is full', () => {
+    let base = starterDocument()
+    // A narrow type, so a second column still fits beside the first.
+    const first = insertCommand(base, 'h4')
+    base = reduce(base, first)
+    let folded = first
+    for (let i = 0; i < 4 && folded.block.props.x === first.block.props.x; i += 1) {
+      folded = insertCommand(base, 'h4')
+      base = reduce(base, folded)
+    }
+    expect(folded.block.props.x).toBeGreaterThan(first.block.props.x)
+  })
+
+  // A finite canvas has to reuse a position eventually. What must never happen
+  // is one insert landing exactly on the insert before it, which is the case
+  // that looks like nothing happened at all.
+  it('never puts a block exactly on top of the one before it', () => {
+    let base = starterDocument()
+    let last = ''
+    for (let i = 0; i < 10; i += 1) {
+      const cmd = insertCommand(base, 'h4')
+      base = reduce(base, cmd)
+      const at = `${String(cmd.block.props.x)}:${String(cmd.block.props.y)}`
+      expect(at).not.toBe(last)
+      last = at
     }
   })
 
