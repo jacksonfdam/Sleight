@@ -6,7 +6,13 @@ const LIMIT = 200
 export interface LogEntry {
   readonly id: number
   readonly source: IntentSource
-  readonly cmd: Command
+  readonly op: Command['op']
+  /**
+   * Rendered when the entry is recorded, not when it is drawn. A deletion has to
+   * name the block it deleted, and by the time the panel repaints, that block is
+   * gone from the document there would be to look it up in.
+   */
+  readonly text: string
   /** Present when the entry belongs to a continuous gesture. */
   readonly txn: string | undefined
   readonly ts: number
@@ -14,6 +20,11 @@ export interface LogEntry {
   readonly count: number
   /** Set for an utterance the grammar produced no command from. */
   readonly unheard: string | undefined
+}
+
+export interface HistoryLogOptions {
+  /** Supplied by the caller, so the log itself never reads the document. */
+  readonly describe: (cmd: Command) => string
 }
 
 /**
@@ -26,9 +37,14 @@ export interface LogEntry {
  * most useful line in it, and the undo stack cannot have one.
  */
 export class HistoryLog {
+  private readonly options: HistoryLogOptions
   private readonly entries: LogEntry[] = []
   private readonly listeners = new Set<(entries: readonly LogEntry[]) => void>()
   private next = 1
+
+  constructor(options: HistoryLogOptions) {
+    this.options = options
+  }
 
   get all(): readonly LogEntry[] {
     return this.entries
@@ -49,16 +65,17 @@ export class HistoryLog {
   record(intent: Intent): void {
     if (intent.cmd.op === 'hover') return
 
+    const text = this.options.describe(intent.cmd)
     const last = this.entries[this.entries.length - 1]
     if (
       last !== undefined &&
       intent.txn !== undefined &&
       last.txn === intent.txn &&
-      last.cmd.op === intent.cmd.op
+      last.op === intent.cmd.op
     ) {
       this.entries[this.entries.length - 1] = {
         ...last,
-        cmd: intent.cmd,
+        text,
         ts: intent.ts,
         count: last.count + 1,
       }
@@ -69,7 +86,8 @@ export class HistoryLog {
     this.push({
       id: this.next++,
       source: intent.source,
-      cmd: intent.cmd,
+      op: intent.cmd.op,
+      text,
       txn: intent.txn,
       ts: intent.ts,
       count: 1,
@@ -82,7 +100,8 @@ export class HistoryLog {
     this.push({
       id: this.next++,
       source: 'voice',
-      cmd: { op: 'noop' },
+      op: 'noop',
+      text: utterance,
       txn: undefined,
       ts,
       count: 1,

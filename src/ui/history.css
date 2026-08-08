@@ -1,0 +1,117 @@
+.sl-history {
+  grid-area: history;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--sl-space-3) var(--sl-space-4);
+  background: var(--sl-surface-raised);
+  border-top: 1px solid var(--sl-hud-line);
+  border-left: 1px solid var(--sl-hud-line);
+}
+
+.sl-history__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sl-space-2);
+  margin-bottom: var(--sl-space-2);
+}
+
+.sl-history__title {
+  margin: 0;
+  font-size: var(--sl-font-size-md);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sl-hud-ink);
+}
+
+.sl-history__empty {
+  margin: 0;
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-size-sm);
+}
+
+.sl-history__empty[hidden] {
+  display: none;
+}
+
+.sl-history__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.sl-history__row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: baseline;
+  gap: var(--sl-space-2);
+  padding: 3px 0;
+  font-size: var(--sl-font-size-sm);
+  border-bottom: 1px solid var(--sl-border);
+  /* New rows arrive at the top; the fade marks which one is new. */
+  animation: sl-log-in 200ms ease-out;
+}
+
+@keyframes sl-log-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.sl-history__time {
+  color: var(--sl-text-muted);
+  font-family: var(--sl-font-mono);
+  font-size: 11px;
+}
+
+/*
+ * The source is the whole reason this panel exists: it says whether the change
+ * came from the mouse, a hand, or something spoken.
+ */
+.sl-history__source {
+  padding: 1px 5px;
+  color: var(--sl-text-inverse);
+  font-family: var(--sl-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  background: var(--sl-hover);
+}
+
+.sl-history__row[data-source='voice'] .sl-history__source {
+  background: var(--sl-accent);
+}
+
+.sl-history__row[data-source='hand'] .sl-history__source {
+  background: var(--sl-select);
+}
+
+.sl-history__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sl-history__row[data-unheard='yes'] .sl-history__text {
+  color: var(--sl-text-muted);
+  font-style: italic;
+  text-decoration: line-through;
+}
+
+.sl-history__count {
+  color: var(--sl-text-muted);
+  font-family: var(--sl-font-mono);
+  font-size: 11px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-history__row {
+    animation: none;
+  }
+}

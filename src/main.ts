@@ -16,6 +16,8 @@ import { Overlay, computeGuides } from './render/overlay'
 import type { HandleName } from './render/renderer'
 import { Renderer } from './render/renderer'
 import HandWorker from './vision/hand.worker?worker'
+import { HistoryLog } from './core/history-log'
+import { HistoryPanel, describeCommand } from './ui/history'
 import { Inspector } from './ui/inspector'
 import { Toolbar } from './ui/toolbar'
 import { CommandParser } from './language/parser'
@@ -49,6 +51,7 @@ interface Shell {
   readonly stage: HTMLElement
   readonly canvasHost: HTMLElement
   readonly inspector: HTMLElement
+  readonly history: HTMLElement
   readonly status: HTMLElement
 }
 
@@ -63,17 +66,19 @@ function buildShell(host: HTMLElement): Shell {
       <div class="sl-stage__inner"></div>
     </main>
     <aside class="sl-inspector" aria-label="Properties"></aside>
+    <section class="sl-history" aria-label="History"></section>
     <footer class="sl-status" aria-live="polite"></footer>
   `
   const toolbar = host.querySelector<HTMLElement>('.sl-toolbar')
   const stage = host.querySelector<HTMLElement>('.sl-stage')
   const canvasHost = host.querySelector<HTMLElement>('.sl-stage__inner')
   const inspector = host.querySelector<HTMLElement>('.sl-inspector')
+  const history = host.querySelector<HTMLElement>('.sl-history')
   const status = host.querySelector<HTMLElement>('.sl-status')
-  if (!toolbar || !stage || !canvasHost || !inspector || !status) {
+  if (!toolbar || !stage || !canvasHost || !inspector || !history || !status) {
     throw new Error('Editor shell failed to mount')
   }
-  return { toolbar, stage, canvasHost, inspector, status }
+  return { toolbar, stage, canvasHost, inspector, history, status }
 }
 
 async function start(host: HTMLElement): Promise<void> {
@@ -83,7 +88,25 @@ async function start(host: HTMLElement): Promise<void> {
   const renderer = new Renderer(shell.canvasHost)
   const overlay = new Overlay(shell.canvasHost)
 
+  const log = new HistoryLog({
+    describe: cmd => describeCommand(cmd, store.getState().doc),
+  })
+  const history = new HistoryPanel({
+    host: shell.history,
+    onClear: () => {
+      log.clear()
+    },
+    origin: performance.now(),
+  })
+  log.subscribe(entries => {
+    history.render(entries)
+  })
+  history.render(log.all)
+
   bus.subscribe(intent => {
+    // Recorded before the store applies it, so a deletion can still name the
+    // block it is about to remove.
+    log.record(intent)
     store.apply(intent.cmd, intent.txn, intent.ts)
   })
   let pointerX = -1
@@ -214,6 +237,9 @@ async function start(host: HTMLElement): Promise<void> {
     parse: utterance => parser.parse(utterance),
     onResult: (utterance, cmd) => {
       toolbar.setHeard(utterance, cmd.op !== 'noop')
+      // An utterance that matched nothing never reaches the bus, so the log has
+      // to be told about it here or the most diagnostic line would be missing.
+      if (cmd.op === 'noop') log.recordUnheard(utterance, performance.now())
     },
   })
 
