@@ -1,7 +1,8 @@
-import { isAlign } from '../core/document'
+import { insertCommand, isAlign, isBlockType } from '../core/document'
 import type { Align, Command, NumericPath, PropPath } from '../core/types'
 import type { ParseContext } from './grammar'
 import { parseGrammar } from './grammar'
+import { resolveTarget } from './target'
 import { PromptSession } from './prompt'
 import { isSpeechSupported } from './speech'
 
@@ -33,9 +34,19 @@ export function stripFences(raw: string): string {
   return (fenced?.[1] ?? trimmed).trim()
 }
 
+/**
+ * The model is given the id list and asked to pick from it, but it will
+ * sometimes answer with the block's label instead. That is a naming slip rather
+ * than a wrong command, so the label is resolved before falling back to the
+ * current selection.
+ */
 function targetId(record: Record<string, unknown>, context: ParseContext): string | null {
   const id = record['id']
-  if (typeof id === 'string' && context.doc.blocks[id] !== undefined) return id
+  if (typeof id === 'string') {
+    if (context.doc.blocks[id] !== undefined) return id
+    const block = resolveTarget(context.doc, id, context.selectedId)
+    if (block !== null) return block.id
+  }
   return context.selectedId
 }
 
@@ -65,9 +76,10 @@ export function validateCommand(value: unknown, context: ParseContext): Command 
     case 'select': {
       const id = record['id']
       if (id === null) return { op: 'select', id: null }
-      return typeof id === 'string' && context.doc.blocks[id] !== undefined
-        ? { op: 'select', id }
-        : NOOP
+      if (typeof id !== 'string') return NOOP
+      if (context.doc.blocks[id] !== undefined) return { op: 'select', id }
+      const block = resolveTarget(context.doc, id, context.selectedId)
+      return block === null ? NOOP : { op: 'select', id: block.id }
     }
 
     case 'undo':
@@ -111,8 +123,14 @@ export function validateCommand(value: unknown, context: ParseContext): Command 
       return { op: 'move', id, parent, index: typeof index === 'number' ? index : 0 }
     }
 
-    // `insert` needs a whole block, which cannot be reconstructed safely from a
-    // partial response, so it is declined rather than guessed at.
+    // The model names a type and nothing else. Geometry, label, and id are built
+    // here from the same code the toolbar uses, so a partial response can never
+    // put a half-formed block into the document.
+    case 'insert': {
+      const type = record['type']
+      return isBlockType(type) ? insertCommand(context.doc, type) : NOOP
+    }
+
     default:
       return NOOP
   }
