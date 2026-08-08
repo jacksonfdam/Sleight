@@ -3,6 +3,8 @@ import { absoluteOrigin, subtreeIds } from '../core/document'
 import type { DocumentState } from '../core/types'
 import { SNAP_TOLERANCE_PX } from '../tuning'
 
+const LABEL_FONT = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+
 export interface Guide {
   readonly axis: 'x' | 'y'
   /** Position of the line along its axis, in document pixels. */
@@ -108,6 +110,7 @@ export class Overlay {
   private height = 0
   private ratio = 0
   private guideColor = '#d4380d'
+  private labelInk = '#ffffff'
 
   constructor(host: HTMLElement) {
     this.canvas = document.createElement('canvas')
@@ -125,6 +128,7 @@ export class Overlay {
   private readTokens(): void {
     const styles = getComputedStyle(this.canvas)
     this.guideColor = styles.getPropertyValue('--sl-guide').trim() || this.guideColor
+    this.labelInk = styles.getPropertyValue('--sl-text-inverse').trim() || this.labelInk
   }
 
   /**
@@ -171,6 +175,34 @@ export class Overlay {
       }
     }
     context.stroke()
+    context.setLineDash([])
+    for (const guide of guides) this.drawDistance(context, guide)
     context.restore()
+  }
+
+  /**
+   * The gap between the two aligned edges, printed at the midpoint of the guide.
+   * A guide alone says the edges line up; the number says how far apart they are,
+   * which is what you actually need when spacing a stack of blocks.
+   */
+  private drawDistance(context: CanvasRenderingContext2D, guide: Guide): void {
+    if (guide.gap <= 0) return
+    const label = String(Math.round(guide.gap))
+    context.font = `11px ${LABEL_FONT}`
+    context.textAlign = 'center'
+    context.textBaseline = 'middle'
+
+    const middle = (guide.from + guide.to) / 2
+    const x = guide.axis === 'x' ? guide.at : middle
+    const y = guide.axis === 'x' ? middle : guide.at
+    const width = context.measureText(label).width + 8
+
+    context.fillStyle = this.guideColor
+    context.beginPath()
+    context.roundRect(x - width / 2, y - 8, width, 16, 3)
+    context.fill()
+
+    context.fillStyle = this.labelInk
+    context.fillText(label, x, y)
   }
 }
