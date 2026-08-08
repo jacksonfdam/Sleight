@@ -2,6 +2,7 @@ import './blocks.css'
 import { getChildren, subtreeIds } from '../core/document'
 import type { EditorState } from '../core/store'
 import type { Block, DocumentState } from '../core/types'
+import { carriesText, textTagFor } from './semantics'
 
 const TEXT_CLASS = 'sl-block__text'
 const IMAGE_CLASS = 'sl-block__image'
@@ -56,17 +57,19 @@ function createElement(block: Block): HTMLElement {
   el.className = `sl-block sl-block--${block.type}`
   el.setAttribute(BLOCK_ATTR, block.id)
   el.dataset['blockType'] = block.type
-  if (block.type === 'image') {
+  if (carriesText(block.type)) {
+    // The tag matches the export, so a heading is a real heading on screen too
+    // and inherits the same weight and semantics the exported page will have.
+    const text = document.createElement(textTagFor(block.type))
+    text.className = TEXT_CLASS
+    el.append(text)
+  } else {
     const img = document.createElement('img')
     img.className = IMAGE_CLASS
     img.alt = block.label
     const placeholder = document.createElement('span')
     placeholder.className = PLACEHOLDER_CLASS
     el.append(img, placeholder)
-  } else {
-    const span = document.createElement('span')
-    span.className = TEXT_CLASS
-    el.append(span)
   }
   return el
 }
@@ -81,7 +84,7 @@ function applyProps(el: HTMLElement, block: Block): void {
   el.style.fontSize = `${String(props.fontSize)}px`
   el.style.textAlign = props.align
 
-  if (block.type === 'image') {
+  if (!carriesText(block.type)) {
     const img = el.querySelector<HTMLImageElement>(`.${IMAGE_CLASS}`)
     const placeholder = el.querySelector<HTMLElement>(`.${PLACEHOLDER_CLASS}`)
     const hasSrc = props.src.length > 0

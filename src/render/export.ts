@@ -1,5 +1,6 @@
 import { getChildren } from '../core/document'
 import type { Block, DocumentState } from '../core/types'
+import { TEXT_TAGS, carriesText, textTagFor } from './semantics'
 
 /**
  * Styles for the exported page. They are deliberately a separate, smaller set
@@ -13,8 +14,8 @@ body{margin:0;background:#fff;color:#16202a;font-family:ui-sans-serif,system-ui,
 .block.section{align-content:start;background:#f8fafb;border:1px solid #ccd5dd}
 .block.hero{background:#eceff2;border-radius:14px}
 .block.image{padding:0;overflow:hidden;background:#eceff2;border:1px solid #ccd5dd}
-.block>span{display:block;width:100%;white-space:pre-wrap;word-break:break-word}
-.block>img{display:block;width:100%;height:100%;object-fit:cover}`
+.block>img{display:block;width:100%;height:100%;object-fit:cover}
+${TEXT_TAGS.map(tag => `.block>${tag}`).join(',')}{display:block;width:100%;margin:0;font-size:inherit;white-space:pre-wrap;word-break:break-word}`
 
 const ESCAPES: Record<string, string> = {
   '&': '&amp;',
@@ -41,6 +42,17 @@ function styleFor(block: Block): string {
   ].join(';')
 }
 
+function textMarkup(block: Block): string {
+  if (block.props.text.length === 0) return ''
+  const tag = textTagFor(block.type)
+  return `<${tag}>${escapeHtml(block.props.text)}</${tag}>`
+}
+
+function imageMarkup(block: Block): string {
+  if (block.props.src.length === 0) return ''
+  return `<img src="${escapeHtml(block.props.src)}" alt="${escapeHtml(block.label)}">`
+}
+
 function renderBlock(doc: DocumentState, id: string, depth: number): string {
   const block = doc.blocks[id]
   if (block === undefined) return ''
@@ -50,14 +62,7 @@ function renderBlock(doc: DocumentState, id: string, depth: number): string {
     .map(childId => renderBlock(doc, childId, depth + 1))
     .join('\n')
 
-  const inner =
-    block.type === 'image'
-      ? block.props.src.length > 0
-        ? `<img src="${escapeHtml(block.props.src)}" alt="${escapeHtml(block.label)}">`
-        : ''
-      : block.props.text.length > 0
-        ? `<span>${escapeHtml(block.props.text)}</span>`
-        : ''
+  const inner = carriesText(block.type) ? textMarkup(block) : imageMarkup(block)
 
   const body = [inner, children].filter(part => part.length > 0).join('\n')
   const open = `${indent}<div class="block ${block.type}" style="${styleFor(block)}">`

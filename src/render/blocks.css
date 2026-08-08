@@ -34,9 +34,16 @@
   border: 1px solid var(--sl-paper-line);
 }
 
+/*
+ * The text node is a real h1..h4 or p for the heading and paragraph types, so
+ * the browser's own margins and font sizes have to be cleared: size comes from
+ * the block's own property, not from the tag.
+ */
 .sl-block__text {
   display: block;
   width: 100%;
+  margin: 0;
+  font-size: inherit;
   white-space: pre-wrap;
   word-break: break-word;
 }
