@@ -1,0 +1,116 @@
+/*
+ * Every colour in the application resolves through one of these custom
+ * properties. Nothing outside this file declares a literal colour, so the dark
+ * scheme is a single block of overrides rather than a parallel stylesheet.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --sl-surface: #f4f6f8;
+  --sl-surface-raised: #ffffff;
+  --sl-surface-sunken: #e6eaee;
+  --sl-canvas: #ffffff;
+
+  --sl-border: #d3dae1;
+  --sl-border-strong: #aeb9c4;
+
+  --sl-text: #16202a;
+  --sl-text-muted: #5c6b7a;
+  --sl-text-inverse: #ffffff;
+
+  --sl-accent: #0f766e;
+  --sl-accent-strong: #0b5d57;
+  --sl-accent-soft: rgb(15 118 110 / 12%);
+
+  --sl-select: #2563eb;
+  --sl-select-soft: rgb(37 99 235 / 14%);
+  --sl-hover: #7c8b9a;
+
+  --sl-danger: #b42318;
+  --sl-warning: #b25e09;
+  --sl-ok: #15803d;
+
+  --sl-guide: #d4380d;
+  --sl-cursor: #0f766e;
+  --sl-cursor-ring: rgb(15 118 110 / 35%);
+
+  --sl-shadow: 0 1px 2px rgb(16 32 42 / 8%), 0 8px 24px rgb(16 32 42 / 8%);
+
+  --sl-radius-sm: 4px;
+  --sl-radius-md: 8px;
+  --sl-radius-lg: 14px;
+
+  --sl-space-1: 4px;
+  --sl-space-2: 8px;
+  --sl-space-3: 12px;
+  --sl-space-4: 16px;
+  --sl-space-5: 24px;
+
+  --sl-font-ui:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --sl-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --sl-font-size-sm: 12px;
+  --sl-font-size-md: 13px;
+  --sl-font-size-lg: 15px;
+
+  --sl-focus-ring: 0 0 0 2px var(--sl-surface), 0 0 0 4px var(--sl-select);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sl-surface: #10151b;
+    --sl-surface-raised: #19212a;
+    --sl-surface-sunken: #0a0e13;
+    --sl-canvas: #1d262f;
+
+    --sl-border: #2c3945;
+    --sl-border-strong: #435364;
+
+    --sl-text: #e6edf3;
+    --sl-text-muted: #97a6b5;
+    --sl-text-inverse: #0a0e13;
+
+    --sl-accent: #2dd4bf;
+    --sl-accent-strong: #5eead4;
+    --sl-accent-soft: rgb(45 212 191 / 16%);
+
+    --sl-select: #60a5fa;
+    --sl-select-soft: rgb(96 165 250 / 20%);
+    --sl-hover: #8ea0b2;
+
+    --sl-danger: #f87171;
+    --sl-warning: #fbbf24;
+    --sl-ok: #4ade80;
+
+    --sl-guide: #fb923c;
+    --sl-cursor: #2dd4bf;
+    --sl-cursor-ring: rgb(45 212 191 / 40%);
+
+    --sl-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 45%);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--sl-surface);
+  color: var(--sl-text);
+  font-family: var(--sl-font-ui);
+  font-size: var(--sl-font-size-md);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--sl-focus-ring);
+}
