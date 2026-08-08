@@ -66,6 +66,13 @@
   --sl-hud-sweep: rgb(15 118 110 / 55%);
   --sl-hud-ink: #0b5d57;
 
+  /*
+   * The band crossing the stage. It is a separate, far weaker token than the
+   * glow used around controls: the same alpha that reads as a soft ring on a
+   * button reads as a spotlight when it is stretched across the whole canvas.
+   */
+  --sl-hud-scan: rgb(15 118 110 / 7%);
+
   --sl-shadow: 0 1px 2px rgb(16 32 42 / 8%), 0 8px 24px rgb(16 32 42 / 8%);
 
   --sl-radius-sm: 4px;
@@ -123,6 +130,7 @@
     --sl-hud-grid: rgb(45 212 191 / 9%);
     --sl-hud-sweep: rgb(45 212 191 / 70%);
     --sl-hud-ink: #5eead4;
+    --sl-hud-scan: rgb(45 212 191 / 8%);
 
     --sl-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 45%);
   }

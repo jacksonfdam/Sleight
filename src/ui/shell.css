@@ -104,7 +104,7 @@
   position: absolute;
   inset: -160px 0 auto;
   height: 160px;
-  background: linear-gradient(180deg, transparent, var(--sl-hud-glow), transparent);
+  background: linear-gradient(180deg, transparent, var(--sl-hud-scan), transparent);
   pointer-events: none;
   animation: sl-scan 11s ease-in-out infinite;
 }
