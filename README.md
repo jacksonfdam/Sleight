@@ -26,6 +26,10 @@ and never reach the export.
 
 ![Snap guides with a distance label during a drag](docs/screenshots/snap-guides.png)
 
+With the camera on, the document floats over the live feed.
+
+![The editor with the camera feed showing behind the translucent canvas](docs/screenshots/camera-background.png)
+
 The same document exported as a standalone HTML file, opened directly from disk.
 
 ![The exported page rendered on its own](docs/screenshots/exported-page.png)
@@ -198,8 +202,22 @@ progress ring giving continuous feedback. Below 0.6 tracking confidence the
 cursor is hidden rather than drawn, because a cursor that wanders on its own is
 worse than no cursor.
 
+A pinch closed over a resize handle of the selected block grabs that handle
+instead of the block, so the hand has the same two gestures the mouse does:
+pinch anywhere on a block to move it, pinch on a handle to resize it. Both go
+through the shared handle maths, so a north or west handle moves the origin as
+it grows the block in either mode.
+
+While the camera is on, the feed is drawn behind the canvas and the page turns
+translucent over it, so the layout appears to float in the room in front of you.
+The feed is already running for inference, so this costs one compositor layer
+and no extra capture. It is mirrored to match the cursor mapping. The veil
+opacity and feed opacity are tokens, because how much room to let through is a
+legibility trade-off rather than a fixed answer.
+
 Every value tuned by feel lives in `src/tuning.ts`, each with a comment saying
-what goes wrong when it moves in either direction.
+what goes wrong when it moves in either direction. Colour and opacity values
+live in `src/ui/tokens.css` for the same reason.
 
 ## Voice command reference
 
