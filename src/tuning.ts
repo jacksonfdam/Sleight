@@ -142,3 +142,14 @@ export const GIF_PAGE_SIZE = 25
  * connection reports failure while the answer is still on its way.
  */
 export const GIF_TIMEOUT_MS = 6000
+
+/**
+ * How long a spoken phrase blocks an identical one behind it.
+ *
+ * The recogniser reports the same sentence twice — once as an interim result and
+ * again when it settles — and the second must not be acted on. But saying a
+ * command again, because the first attempt was misheard, has to work. This is
+ * the window that separates those two cases: longer, and a deliberate repeat is
+ * swallowed; shorter, and one utterance is applied twice.
+ */
+export const VOICE_REPEAT_MS = 1200

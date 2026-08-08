@@ -1,5 +1,5 @@
 import type { TimerHandle } from '../core/bus'
-import { VOICE_PAUSE_MS } from '../tuning'
+import { VOICE_PAUSE_MS, VOICE_REPEAT_MS } from '../tuning'
 
 export type SpeechStatus = 'unavailable' | 'idle' | 'listening'
 
@@ -28,6 +28,7 @@ export class SpeechInput {
   private pauseTimer: TimerHandle | null = null
   private pendingText = ''
   private lastEmitted = ''
+  private lastEmittedAt = 0
   private wanted = false
 
   constructor(options: SpeechOptions) {
@@ -112,10 +113,21 @@ export class SpeechInput {
     }, VOICE_PAUSE_MS)
   }
 
+  /**
+   * The duplicate guard is a window, not a latch.
+   *
+   * The recogniser delivers the same sentence twice in quick succession, once
+   * interim and once final, and only the first should be acted on. A permanent
+   * guard would also swallow the far more common case of saying a command again
+   * because the first attempt came out wrong — which reads as the microphone
+   * having died.
+   */
   private emit(text: string): void {
     const cleaned = text.trim()
-    if (cleaned.length === 0 || cleaned === this.lastEmitted) return
+    if (cleaned.length === 0) return
+    if (cleaned === this.lastEmitted && Date.now() - this.lastEmittedAt < VOICE_REPEAT_MS) return
     this.lastEmitted = cleaned
+    this.lastEmittedAt = Date.now()
     this.options.onUtterance(cleaned)
   }
 
