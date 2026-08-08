@@ -225,7 +225,9 @@ function nextSlot(doc: DocumentState, width: number, height: number): { x: numbe
     if (y <= limitY) return { x, y }
   }
 
-  const step = (siblings.length % CASCADE_LENGTH) * CASCADE_STEP
+  // The cascade starts one step in, never at the margin itself: the top corner
+  // is where the first block of most documents already sits.
+  const step = ((siblings.length % CASCADE_LENGTH) + 1) * CASCADE_STEP
   return { x: Math.min(limitX, STACK_MARGIN + step), y: Math.min(limitY, STACK_MARGIN + step) }
 }
 
