@@ -128,12 +128,15 @@ export class Renderer {
    * Called once per frame from the render loop, never per event.
    * `elementFromPoint` forces a style flush, so calling it on every pointer move
    * costs frames during a drag for a result that cannot change more than once a
-   * frame anyway.
+   * frame anyway. Block and handle come from that one call.
    */
-  hitTest(clientX: number, clientY: number): string | null {
-    const id = blockIdAt(document.elementFromPoint(clientX, clientY))
-    if (id === null) return null
-    return id === this.prev?.doc.rootId ? null : id
+  probe(clientX: number, clientY: number): { blockId: string | null; handle: HandleName | null } {
+    const node = document.elementFromPoint(clientX, clientY)
+    const id = blockIdAt(node)
+    return {
+      blockId: id === null || id === this.prev?.doc.rootId ? null : id,
+      handle: handleAt(node),
+    }
   }
 
   /**

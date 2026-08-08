@@ -11,6 +11,7 @@ import { loadDocument, saveDocument } from './core/persistence'
 import { Store } from './core/store'
 import { exportHtml } from './render/export'
 import { Overlay, computeGuides } from './render/overlay'
+import type { HandleName } from './render/renderer'
 import { Renderer } from './render/renderer'
 import HandWorker from './vision/hand.worker?worker'
 import { Inspector } from './ui/inspector'
@@ -95,6 +96,7 @@ async function start(host: HTMLElement): Promise<void> {
   })
 
   let hovered: string | null = null
+  let handle: HandleName | null = null
   const damper = new HoverDamper()
 
   const hand = new HandAdapter({
@@ -104,6 +106,7 @@ async function start(host: HTMLElement): Promise<void> {
     wasmPath: `${import.meta.env.BASE_URL}models/wasm`,
     modelPath: `${import.meta.env.BASE_URL}models/hand_landmarker.task`,
     getHovered: () => hovered,
+    getHandle: () => handle,
     onStatus: status => {
       toolbar.setCameraActive(hand.running)
       toolbar.setNotice(CAMERA_NOTICE[status])
@@ -124,8 +127,9 @@ async function start(host: HTMLElement): Promise<void> {
     const source = cursor.visible ? 'hand' : 'pointer'
     const x = cursor.visible ? cursor.x : pointerX
     const y = cursor.visible ? cursor.y : pointerY
-    const hit = x < 0 ? null : renderer.hitTest(x, y)
-    hovered = damper.resolve({ id: hit, x, y, source, now: performance.now() })
+    const probe = x < 0 ? { blockId: null, handle: null } : renderer.probe(x, y)
+    handle = probe.handle
+    hovered = damper.resolve({ id: probe.blockId, x, y, source, now: performance.now() })
     if (hovered !== state.hoveredId) bus.emit({ op: 'hover', id: hovered }, source)
 
     overlay.clear()
