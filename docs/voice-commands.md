@@ -128,7 +128,9 @@ possessive names the same block as the plain form.
 
 The canvas itself is not in the target vocabulary, so no phrasing reaches it.
 A deletion is an ordinary transaction: `undo` brings the block back with its
-properties intact.
+properties intact. The toolbar's Delete button and the `Delete` and `Backspace`
+keys do the same thing, and all three appear in the history panel tagged with
+the source they came from.
 
 ## Adding a block
 
@@ -156,7 +158,9 @@ rather than guessed at, while `add a heading block` is the same as
 ## Filling an image with a GIF
 
 The only commands that reach a network service. They need `VITE_GIPHY_KEY` to be
-set; without it the status bar says so and nothing changes.
+set; without it the status bar says so and nothing changes. The same four actions
+are in the inspector whenever an image block is selected, which is the way to
+tell a failing search apart from a misheard word.
 
 | Say                          | Effect                                    |
 | ---------------------------- | ----------------------------------------- |
@@ -197,3 +201,16 @@ Filler openings (`please`, `okay`, `hey`, `now`) and trailing punctuation are
 stripped before parsing. Anything that does not match a pattern above produces no
 command at all rather than a guess, so ordinary conversation near an open
 microphone does not edit the document.
+
+## When nothing happens
+
+Silence is the one failure voice can produce, and two places report it. The
+status bar shows the last thing the microphone heard, struck through when no
+command came out of it. The history panel keeps those lines, so a phrase that was
+misheard can be read back word for word.
+
+That distinction matters more than it sounds: `find a jif of a cat` is not in the
+vocabulary and `find a gif of a cat` is, and without seeing the transcript the two
+are the same silence. Saying a command again works — an identical phrase is only
+suppressed for about a second, long enough to swallow the recogniser's own
+duplicate and no longer.

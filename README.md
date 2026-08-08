@@ -81,12 +81,35 @@ changes nothing; the rest of the editor is unaffected. `.env.local` is ignored
 by git, so no key is ever committed. Requests carry the search term and nothing
 else — no document content and no identifier.
 
+## The history panel
+
+Every intent that reaches the bus is recorded, tagged with the source that
+produced it, and listed newest first. It is not the undo stack. The store keeps
+transactions so it can replay a document; this keeps utterances, no-ops, and
+undo itself, because the question it answers is "what did I just do, and did it
+register" rather than "what is the document now".
+
+The single most useful line in it is one the undo stack cannot have: a spoken
+phrase that matched no command, struck through, next to the exact words the
+recogniser heard. Voice is the only input that can fail silently, and that line
+is the difference between a misheard word and a microphone that is not working.
+
+A continuous gesture collapses to one row carrying a count, so a drag that emits
+sixty positions reads as one line rather than sixty.
+
+## Deleting a block
+
+Three ways, all producing the same intent: the toolbar button, `Delete` or
+`Backspace` on the keyboard, and the voice grammar. The keyboard shortcut is
+suppressed while focus is in a text field or an editable node, so backspacing a
+character never deletes the block being edited.
+
 ## Architecture
 
 ```
 src/
   core/        block tree, reducer, store, intent bus, property locks
-  adapters/    pointer, hand, and voice input translated into intents
+  adapters/    pointer, keyboard, hand, and voice input translated into intents
   vision/      hand landmark inference in a worker, one euro filtering
   language/    speech capture, deterministic grammar, on-device model parsing
   media/       gif search, the one service outside the machine
@@ -385,9 +408,10 @@ it every feature except GIF search behaves identically.
   `image`. Headings and paragraphs carry their real tag through to the export.
 - Bold, italic, and underline apply to a whole block, not to a run of words
   inside it. There is no rich text model; a block has one set of styles.
-- Blocks are added from the toolbar or by voice, and deleted by voice only.
-  There is no delete control in the interface, so a session without a working
-  microphone can add a block but not remove it except by undoing.
+- The history panel lists commands but cannot replay them. Clicking a line does
+  nothing; undo still walks the stack from the top. Making a line clickable means
+  reconciling the log with the store's transactions, which are two different
+  groupings of the same events.
 - The canvas is a fixed 960 by 640 and nothing can resize it. Once a page is
   full, a new block cascades over what is already there rather than extending
   the page, and has to be dragged somewhere useful.
@@ -426,9 +450,10 @@ it every feature except GIF search behaves identically.
   the `immutable` header in `vercel.json` keeps them available offline for a
   year. Precaching them behind a service worker would close that gap.
 - Keyboard access covers the editor chrome: the toolbar and every inspector field
-  are reachable and operable by keyboard, and each control carries a label.
-  Blocks on the canvas cannot yet be selected or moved from the keyboard; that
-  needs a roving focus model the canvas does not have.
+  are reachable and operable by keyboard, and each control carries a label. The
+  selected block can be deleted with `Delete` or `Backspace`. Blocks cannot yet
+  be selected or moved from the keyboard; that needs a roving focus model the
+  canvas does not have.
 
 ## License
 
