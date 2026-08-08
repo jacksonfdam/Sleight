@@ -26,6 +26,18 @@ export interface ToolbarOptions {
   readonly cameraSupported: boolean
   readonly onMicToggle: (active: boolean) => void
   readonly onCameraToggle: (active: boolean) => void
+  readonly onUndo: () => void
+  readonly onRedo: () => void
+  readonly onExport: () => void
+}
+
+function createAction(label: string, description: string): HTMLButtonElement {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'sl-button'
+  button.setAttribute('aria-label', description)
+  button.textContent = label
+  return button
 }
 
 function createToggle(label: string, description: string): HTMLButtonElement {
@@ -48,6 +60,8 @@ export class Toolbar {
   private readonly mic: HTMLButtonElement | null = null
   private readonly camera: HTMLButtonElement | null = null
   private readonly notice: HTMLElement
+  private readonly undo: HTMLButtonElement
+  private readonly redo: HTMLButtonElement
   private readonly badge: HTMLElement
   private readonly detail: HTMLElement
 
@@ -64,6 +78,16 @@ export class Toolbar {
     this.notice = document.createElement('span')
     this.notice.className = 'sl-notice'
     options.statusHost.append(this.notice)
+
+    this.undo = createAction('Undo', 'Undo the last change')
+    this.undo.addEventListener('click', options.onUndo)
+    this.redo = createAction('Redo', 'Redo the last undone change')
+    this.redo.addEventListener('click', options.onRedo)
+    spacer?.before(this.undo, this.redo)
+
+    const exportAction = createAction('Export', 'Download the page as standalone HTML')
+    exportAction.addEventListener('click', options.onExport)
+    options.host.append(exportAction)
 
     if (options.cameraSupported) {
       const camera = createToggle('Camera', 'Turn hand tracking on or off')
@@ -87,6 +111,11 @@ export class Toolbar {
 
   setMicActive(active: boolean): void {
     this.mic?.setAttribute('aria-pressed', active ? 'true' : 'false')
+  }
+
+  setHistory(canUndo: boolean, canRedo: boolean): void {
+    this.undo.disabled = !canUndo
+    this.redo.disabled = !canRedo
   }
 
   setCameraActive(active: boolean): void {

@@ -8,6 +8,7 @@ import { VoiceAdapter } from './adapters/voice'
 import { IntentBus } from './core/bus'
 import { starterDocument } from './core/document'
 import { Store } from './core/store'
+import { exportHtml } from './render/export'
 import { Overlay, computeGuides } from './render/overlay'
 import { Renderer } from './render/renderer'
 import HandWorker from './vision/hand.worker?worker'
@@ -23,6 +24,16 @@ const CAMERA_NOTICE: Record<HandStatus, string> = {
   running: '',
   denied: 'Camera access was declined. Hand tracking stays off until it is allowed.',
   failed: 'The camera could not be started on this device.',
+}
+
+/** Hands the serialised page to the browser as a file, with no server round trip. */
+function download(html: string, filename: string): void {
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 function isCameraSupported(): boolean {
@@ -179,8 +190,21 @@ async function start(host: HTMLElement): Promise<void> {
       else hand.stop()
       toolbar.setCameraActive(hand.running)
     },
+    onUndo: () => {
+      bus.emit({ op: 'undo' }, 'pointer')
+    },
+    onRedo: () => {
+      bus.emit({ op: 'redo' }, 'pointer')
+    },
+    onExport: () => {
+      download(exportHtml(store.getState().doc), 'sleight-page.html')
+    },
   })
   toolbar.setTier(parser.tier)
+  toolbar.setHistory(store.getState().canUndo, store.getState().canRedo)
+  store.subscribe(state => {
+    toolbar.setHistory(state.canUndo, state.canRedo)
+  })
 }
 
 const mount = document.querySelector<HTMLDivElement>('#app')
