@@ -1,4 +1,5 @@
 import type { IntentBus } from '../core/bus'
+import { transactionId } from '../core/bus'
 import type { HandleName } from '../render/renderer'
 import { blockIdAt, handleAt } from '../render/renderer'
 
@@ -37,7 +38,6 @@ export class PointerAdapter {
   private readonly surface: HTMLElement
   private readonly bus: IntentBus
   private drag: DragSession | null = null
-  private sequence = 0
 
   constructor(options: PointerAdapterOptions) {
     this.surface = options.surface
@@ -83,7 +83,7 @@ export class PointerAdapter {
     const kind = handle === null ? 'move' : 'resize'
     this.drag = {
       id: target,
-      txn: `pointer-${kind}-${String(this.sequence++)}`,
+      txn: transactionId(`pointer-${kind}`),
       pointerId: event.pointerId,
       handle,
       lastX: event.clientX,
@@ -142,5 +142,8 @@ export class PointerAdapter {
       this.surface.releasePointerCapture(event.pointerId)
     }
     this.drag = null
+    // Releasing here rather than waiting for the lease to expire lets a voice
+    // command deferred during the drag apply the moment the drag ends.
+    this.bus.endTransaction(drag.txn)
   }
 }

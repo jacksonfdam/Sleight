@@ -3,6 +3,18 @@ import type { Command, Intent, IntentSource } from './types'
 
 export type IntentHandler = (intent: Intent) => void
 
+let transactionCounter = 0
+
+/**
+ * Transaction identity lives in core because two things depend on it agreeing:
+ * the lock table, which leases per transaction, and the undo stack, which groups
+ * per transaction.
+ */
+export function transactionId(prefix: string): string {
+  transactionCounter += 1
+  return `${prefix}-${String(transactionCounter)}`
+}
+
 export interface IntentBusOptions {
   readonly clock?: () => number
   readonly locks?: LockTable
