@@ -117,6 +117,18 @@ export class Renderer {
   }
 
   /**
+   * Called once per frame from the render loop, never per event.
+   * `elementFromPoint` forces a style flush, so calling it on every pointer move
+   * costs frames during a drag for a result that cannot change more than once a
+   * frame anyway.
+   */
+  hitTest(clientX: number, clientY: number): string | null {
+    const id = blockIdAt(document.elementFromPoint(clientX, clientY))
+    if (id === null) return null
+    return id === this.prev?.doc.rootId ? null : id
+  }
+
+  /**
    * The reducer returns the identical `Block` reference for anything it did not
    * touch, so a reference comparison is enough to skip the write. This keeps a
    * drag that moves one block from rewriting the styles of every other block.

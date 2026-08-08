@@ -53,10 +53,27 @@ async function start(host: HTMLElement): Promise<void> {
   bus.subscribe(intent => {
     store.apply(intent.cmd, intent.txn, intent.ts)
   })
+  let pointerX = -1
+  let pointerY = -1
+  shell.stage.addEventListener('pointermove', event => {
+    pointerX = event.clientX
+    pointerY = event.clientY
+  })
+  shell.stage.addEventListener('pointerleave', () => {
+    pointerX = -1
+    pointerY = -1
+  })
+
+  let hovered: string | null = null
+
   const draw = (): void => {
     const state = store.getState()
     const root = state.doc.blocks[state.doc.rootId]
     if (root) overlay.resize(root.props.w, root.props.h)
+
+    hovered = pointerX < 0 ? null : renderer.hitTest(pointerX, pointerY)
+    if (hovered !== state.hoveredId) bus.emit({ op: 'hover', id: hovered }, 'pointer')
+
     overlay.clear()
     overlay.drawGuides(computeGuides(state.doc, bus.lockedBlock('geom')))
     requestAnimationFrame(draw)
