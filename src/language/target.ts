@@ -73,16 +73,21 @@ function normalise(phrase: string): string {
 }
 
 function stripArticle(phrase: string): string {
-  return phrase.replace(/^(?:the|a|an|my) /, '').replace(/s$/, '')
+  return phrase.replace(/^(?:the|a|an|my) /, '')
+}
+
+/**
+ * The plural is trimmed here rather than in `stripArticle` so that it can only
+ * ever turn one vocabulary word into another. Trimming it up front would maul
+ * every phrase that legitimately ends in an s, `previous` among them.
+ */
+function typesFor(phrase: string): readonly BlockType[] | null {
+  return TYPE_WORDS[phrase] ?? TYPE_WORDS[phrase.replace(/s$/, '')] ?? null
 }
 
 /** The type a spoken word creates, or null when the word names no type. */
 export function blockTypeFor(phrase: string): BlockType | null {
-  return TYPE_WORDS[stripArticle(normalise(phrase))]?.[0] ?? null
-}
-
-function typesFor(phrase: string): readonly BlockType[] | null {
-  return TYPE_WORDS[phrase] ?? null
+  return typesFor(stripArticle(normalise(phrase)))?.[0] ?? null
 }
 
 function byRelative(word: string, blocks: readonly Block[], selected: Block | null): Block | null {
@@ -126,14 +131,13 @@ export function resolveTarget(
   const blocks = listBlocks(doc)
   const selected = selectedId === null ? null : (doc.blocks[selectedId] ?? null)
 
-  if (SELF.test(text)) return selected
+  const bare = stripArticle(text)
+  if (SELF.test(text) || SELF.test(bare)) return selected
 
-  const relative = RELATIVE.exec(text)
+  const relative = RELATIVE.exec(bare)
   if (relative?.groups?.['word'] !== undefined) {
     return byRelative(relative.groups['word'], blocks, selected)
   }
-
-  const bare = stripArticle(text)
 
   const ordered = /^(?<ord>[a-z]+) (?<rest>.+)$/.exec(bare)
   const ord = ordered?.groups?.['ord']
