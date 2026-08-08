@@ -54,9 +54,12 @@ declare global {
     languages?: string[]
   }
 
+  /**
+   * `temperature` and `topK` are not declared: Chrome made both extension-only,
+   * so a page that passes them gets a deprecation warning and no effect. Leaving
+   * them out of the type stops them being reintroduced by habit.
+   */
   interface LanguageModelCreateOptions {
-    temperature?: number
-    topK?: number
     expectedInputs?: LanguageModelExpectation[]
     expectedOutputs?: LanguageModelExpectation[]
     initialPrompts?: LanguageModelInitialPrompt[]
@@ -64,7 +67,7 @@ declare global {
   }
 
   interface LanguageModelStatic {
-    availability(): Promise<LanguageModelAvailability>
+    availability(options?: LanguageModelCreateOptions): Promise<LanguageModelAvailability>
     create(options?: LanguageModelCreateOptions): Promise<LanguageModelSession>
   }
 

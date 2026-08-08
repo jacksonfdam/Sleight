@@ -13,6 +13,12 @@ export type ModelAvailability = LanguageModelAvailability
  */
 export const MODEL_LANGUAGE = 'en'
 
+/** Declared identically on every call, so both draw the same configuration. */
+const LANGUAGE_EXPECTATIONS = {
+  expectedInputs: [{ type: 'text' as const, languages: [MODEL_LANGUAGE] }],
+  expectedOutputs: [{ type: 'text' as const, languages: [MODEL_LANGUAGE] }],
+}
+
 /**
  * The model's only job is classification into the closed command vocabulary.
  * It never writes markup, styles, or prose; anything outside the vocabulary is
@@ -39,7 +45,10 @@ export async function detectLanguageModel(): Promise<ModelAvailability> {
   const api = globalThis.LanguageModel
   if (api === undefined) return 'unavailable'
   try {
-    return await api.availability()
+    // The languages are declared here as well as on `create`. Availability is a
+    // question about a specific configuration, and asking it without one draws
+    // the same warning the session itself would.
+    return await api.availability(LANGUAGE_EXPECTATIONS)
   } catch {
     return 'unavailable'
   }
@@ -62,12 +71,17 @@ export class PromptSession {
     const api = globalThis.LanguageModel
     if (api === undefined) return null
     try {
+      /*
+       * `temperature` and `topK` are deliberately absent. A classification task
+       * wants the most deterministic sampling available, but Chrome has made
+       * both parameters extension-only: passing them from a page changes
+       * nothing and raises a deprecation warning. Determinism is instead
+       * enforced after the fact — every response is narrowed to the command
+       * union, and anything that fails falls through to the grammar, which is
+       * deterministic by construction.
+       */
       const base = await api.create({
-        // Determinism matters more than variety for a classification task.
-        temperature: 0.1,
-        topK: 1,
-        expectedInputs: [{ type: 'text', languages: [MODEL_LANGUAGE] }],
-        expectedOutputs: [{ type: 'text', languages: [MODEL_LANGUAGE] }],
+        ...LANGUAGE_EXPECTATIONS,
         initialPrompts: [{ role: 'system', content: SYSTEM }],
       })
       return new PromptSession(base)
