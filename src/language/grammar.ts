@@ -164,7 +164,7 @@ function propFor(raw: string): PropPath | null {
  * a phrase is looked up, so "it", "to the", and "" all mean the same thing: act
  * on whatever is selected.
  */
-const FILLER = /^(?:to|into|the|a|an|my|its|it|this|that)$/
+const FILLER = /^(?:to|into|the|a|an|my|its|it|this|that|and)$/
 
 /** The longest property name is two words; three allows for a leading article. */
 const PROP_WORDS = 3
