@@ -1,5 +1,5 @@
 import { insertCommand, isAlign } from '../core/document'
-import type { Align, Command, DocumentState, NumericPath, PropPath } from '../core/types'
+import type { Align, Command, DocumentState, FlagPath, NumericPath, PropPath } from '../core/types'
 import { VOICE_FONT_STEP_PX, VOICE_ROTATE_STEP_DEG, VOICE_SIZE_STEP_PX } from '../tuning'
 import { blockTypeFor, resolveTarget } from './target'
 
@@ -67,6 +67,39 @@ const PROPS: Record<string, PropPath> = {
   image: 'src',
   source: 'src',
   src: 'src',
+  bold: 'bold',
+  italic: 'italic',
+  italics: 'italic',
+  underline: 'underline',
+}
+
+/**
+ * Verbs that switch a flag, and which way. Both directions are listed because
+ * "unbold it" has to be a rule rather than a phrasing the grammar shrugs at
+ * after happily accepting "bold it".
+ */
+const FLAG_VERBS: Record<string, { readonly path: FlagPath; readonly value: boolean }> = {
+  bold: { path: 'bold', value: true },
+  embolden: { path: 'bold', value: true },
+  unbold: { path: 'bold', value: false },
+  italicise: { path: 'italic', value: true },
+  italicize: { path: 'italic', value: true },
+  unitalicise: { path: 'italic', value: false },
+  unitalicize: { path: 'italic', value: false },
+  underline: { path: 'underline', value: true },
+  ununderline: { path: 'underline', value: false },
+}
+
+/** Adjective forms, used after `make it` and after `remove the`. */
+const FLAG_WORDS: Record<string, FlagPath> = {
+  bold: 'bold',
+  boldface: 'bold',
+  italic: 'italic',
+  italics: 'italic',
+  italicised: 'italic',
+  italicized: 'italic',
+  underlined: 'underline',
+  underline: 'underline',
 }
 
 const GROW: Record<string, { path: NumericPath; sign: 1 | -1 }> = {
@@ -161,6 +194,11 @@ function targetedProp(
   }
   return null
 }
+
+/** Built from the table so a new verb needs adding in exactly one place. */
+const FLAG_VERB_RE = new RegExp(
+  `^(?<verb>${Object.keys(FLAG_VERBS).join('|')})(?: (?<target>.+))?$`,
+)
 
 /** Words that mean the turn goes the other way. */
 const ANTICLOCKWISE = /\b(?:left|anticlockwise|counterclockwise|counter|back|backwards)\b/
@@ -265,13 +303,40 @@ export function parseGrammar(utterance: string, context: ParseContext): Command 
     if (type !== null) return insertCommand(context.doc, type)
   }
 
+  // Checked before deletion, because `remove the underline` is far more likely
+  // to be about the underline than about a block someone labelled Underline.
+  const unstyle =
+    /^(?:remove|drop|clear|take off|get rid of)(?: the| its)? (?<word>[a-z]+)(?: (?:from|on|in) (?<target>.+))?$/.exec(
+      text,
+    )
+  const unword = unstyle?.groups?.['word']
+  if (unword !== undefined) {
+    const path = FLAG_WORDS[unword]
+    if (path !== undefined) {
+      const id = targetFor(unstyle?.groups?.['target'] ?? '', context)
+      if (id !== null) return { op: 'set', id, path, value: false }
+    }
+  }
+
+  const flagVerb = FLAG_VERB_RE.exec(text)
+  const verb = flagVerb?.groups?.['verb']
+  if (verb !== undefined) {
+    const entry = FLAG_VERBS[verb]
+    const id = targetFor(flagVerb?.groups?.['target'] ?? '', context)
+    if (entry !== undefined && id !== null) {
+      return { op: 'set', id, path: entry.path, value: entry.value }
+    }
+  }
+
   // The canvas itself is not in the target vocabulary, so no phrasing of this
   // can reach the root block. Deleting is a normal transaction and undoes like
   // any other, which is what makes it safe to accept from a microphone at all.
+  // An unresolvable target falls through rather than stopping here, so a phrase
+  // the delete rule cannot place still reaches the rules below it.
   const remove = /^(?:delete|remove|drop|erase|get rid of)(?: (?<target>.+))?$/.exec(text)
   if (remove !== null) {
     const id = targetFor(remove.groups?.['target'] ?? '', context)
-    return id === null ? NOOP : { op: 'remove', id }
+    if (id !== null) return { op: 'remove', id }
   }
 
   // Every rule below takes an optional target, so none of them needs a
@@ -307,11 +372,16 @@ export function parseGrammar(utterance: string, context: ParseContext): Command 
   if (grow?.groups?.['rest'] !== undefined) {
     const words = grow.groups['rest'].split(' ')
     const how = words[words.length - 1] ?? ''
-    const head = words.slice(0, -1)
+    // `not` is pulled out before the target is read, so it cannot be mistaken
+    // for part of a block name.
+    const negated = words.includes('not')
+    const head = words.slice(0, -1).filter(word => word !== 'not')
     // A trailing `text`, `type`, or `font` moves the change from box to type.
     const font = /^(?:text|type|font)$/.test(head[head.length - 1] ?? '')
     const id = targetFor((font ? head.slice(0, -1) : head).join(' '), context)
     if (id !== null) {
+      const flag = FLAG_WORDS[how]
+      if (flag !== undefined) return { op: 'set', id, path: flag, value: !negated }
       const cmd = growCommand(id, how, font)
       if (cmd !== null) return cmd
     }
