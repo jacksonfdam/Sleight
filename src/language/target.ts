@@ -91,21 +91,19 @@ function stripArticle(phrase: string): string {
 }
 
 /**
- * The plural is trimmed here rather than in `stripArticle` so that it can only
- * ever turn one vocabulary word into another. Trimming it up front would maul
- * every phrase that legitimately ends in an s, `previous` among them.
+ * A trailing noun and a plural are trimmed here rather than in `stripArticle`,
+ * so they can only ever turn one vocabulary word into another. Trimming up
+ * front would maul every phrase that legitimately ends in an s, `previous`
+ * among them, and would strip the bare `block` that means any type at all.
  */
 function typesFor(phrase: string): readonly BlockType[] | null {
-  return TYPE_WORDS[phrase] ?? TYPE_WORDS[phrase.replace(/s$/, '')] ?? null
+  const bare = phrase.replace(/ (?:block|element)s?$/, '')
+  return TYPE_WORDS[bare] ?? TYPE_WORDS[bare.replace(/s$/, '')] ?? null
 }
 
-/**
- * The type a spoken word creates, or null when the word names no type. A
- * trailing `block` or `element` is dropped, because "add a heading block" names
- * the same thing as "add a heading".
- */
+/** The type a spoken word creates, or null when the word names no type. */
 export function blockTypeFor(phrase: string): BlockType | null {
-  const bare = stripArticle(normalise(phrase)).replace(/ (?:block|element)$/, '')
+  const bare = stripArticle(normalise(phrase))
   if (GENERIC.test(bare)) return null
   return typesFor(bare)?.[0] ?? null
 }
