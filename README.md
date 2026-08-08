@@ -10,6 +10,36 @@ waiting on each other. It exports a standalone HTML page.
 Not yet deployed. See [Deploying](#deploying) — the build is production ready and
 the URL goes here once the project is imported.
 
+## Browser requirements
+
+Sleight is usable in any modern browser with a mouse. The other two input
+sources have real requirements, and the application degrades in tiers rather
+than failing.
+
+Hand tracking needs a webcam and a Chromium-based browser, and a secure context
+(`localhost` or `https`). It is never started automatically: the camera opens
+only when the Camera control is switched on, and the control is hidden entirely
+where `getUserMedia` is unavailable.
+
+Natural-language voice commands need the browser's built-in `LanguageModel`,
+which is available in Chrome 148 and later on desktop and requires an official
+Google Chrome build. Chromium packages from Linux distributions ship without the
+inference component and report `unavailable` regardless of hardware. Edge,
+Firefox, and Safari do not support it at all.
+
+The active tier is detected at runtime and stated in the toolbar and the status
+bar. There is no capability error to interpret.
+
+| Tier    | Requirement                      | Voice behaviour                                                  |
+| ------- | -------------------------------- | ---------------------------------------------------------------- |
+| Full    | `LanguageModel` available        | Natural-language commands, with the grammar as a fallback        |
+| Grammar | Speech recognition, but no model | The documented grammar handles a fixed set of phrasings          |
+| Manual  | No speech recognition            | Voice controls are hidden; mouse and hand editing are unaffected |
+
+Every tier works with the network disconnected after first load. Speech
+recognition itself may use a network service depending on the browser; nothing
+in Sleight does.
+
 ## Architecture
 
 ```
