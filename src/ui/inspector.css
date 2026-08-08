@@ -5,16 +5,20 @@
 
 .sl-inspector__title {
   margin: 0 0 var(--sl-space-1);
+  padding-bottom: var(--sl-space-2);
   font-size: var(--sl-font-size-lg);
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--sl-hud-line);
 }
 
 .sl-inspector__type {
   display: block;
-  margin-bottom: var(--sl-space-4);
-  color: var(--sl-text-muted);
+  margin: var(--sl-space-2) 0 var(--sl-space-4);
+  color: var(--sl-hud-ink);
+  font-family: var(--sl-font-mono);
   font-size: var(--sl-font-size-sm);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
 }
 
 .sl-fields {
@@ -36,6 +40,8 @@
 .sl-field > span {
   color: var(--sl-text-muted);
   font-size: var(--sl-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .sl-field input,
@@ -48,6 +54,26 @@
   background: var(--sl-surface);
   border: 1px solid var(--sl-border);
   border-radius: var(--sl-radius-sm);
+  transition: border-color 160ms ease;
+}
+
+/* Numbers are read against each other, so they are set in a tabular face. */
+.sl-field input[type='number'] {
+  font-family: var(--sl-font-mono);
+}
+
+.sl-field input:focus,
+.sl-field select:focus,
+.sl-field textarea:focus {
+  border-color: var(--sl-hud-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-field input,
+  .sl-field select,
+  .sl-field textarea {
+    transition: none;
+  }
 }
 
 .sl-field textarea {
