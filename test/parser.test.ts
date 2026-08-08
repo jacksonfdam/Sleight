@@ -75,10 +75,31 @@ describe('command validation', () => {
     expect(validateCommand({ op: 'select', id: null }, context)).toEqual({ op: 'select', id: null })
   })
 
-  it('declines insert rather than inventing a block', () => {
+  it('declines an insert that names no type', () => {
     expect(validateCommand({ op: 'insert', parent: 'root', index: 0 }, context)).toEqual({
       op: 'noop',
     })
+  })
+
+  it('builds the whole block from an insert that names a type', () => {
+    const cmd = validateCommand({ op: 'insert', type: 'h2' }, context)
+    expect(cmd).toMatchObject({ op: 'insert', parent: 'root' })
+    if (cmd.op !== 'insert') throw new Error('expected an insert command')
+    expect(cmd.block.type).toBe('h2')
+    expect(cmd.block.props.fontSize).toBe(30)
+  })
+
+  it('resolves a label the model returned in place of an id', () => {
+    expect(validateCommand({ op: 'select', id: 'Intro copy' }, context)).toEqual({
+      op: 'select',
+      id: 'intro',
+    })
+  })
+
+  it('retargets a set command that named a block by label', () => {
+    expect(validateCommand({ op: 'set', id: 'the image', path: 'w', value: 300 }, context)).toEqual(
+      { op: 'set', id: 'shot', path: 'w', value: 300 },
+    )
   })
 })
 
