@@ -68,6 +68,9 @@ function normalise(phrase: string): string {
   return phrase
     .toLowerCase()
     .replace(/[.,!?;:]/g, ' ')
+    // A possessive is how the block is named out loud in a property command —
+    // "the hero's colour" points at the same block as "the hero".
+    .replace(/'s\b/g, '')
     .replace(/\s+/g, ' ')
     .trim()
 }
