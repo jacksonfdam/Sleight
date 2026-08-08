@@ -61,4 +61,18 @@ declare global {
   var LanguageModel: LanguageModelStatic | undefined
 }
 
+/**
+ * Declared so the key reads as a typed string rather than the `any` that Vite's
+ * open index signature would otherwise hand back. It is absent by default: GIF
+ * search is the one feature that needs a network service, and the application
+ * has to behave when no key was supplied.
+ */
+interface ImportMetaEnv {
+  readonly VITE_GIPHY_KEY?: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv & { readonly BASE_URL: string }
+}
+
 export {}

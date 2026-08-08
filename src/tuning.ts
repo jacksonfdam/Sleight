@@ -128,3 +128,17 @@ export const RETICLE_PERIOD_MS = 2600
  * times before anything visible happens.
  */
 export const VOICE_ROTATE_STEP_DEG = 15
+
+/**
+ * How many results one GIF search keeps to browse through. Fewer and `change it`
+ * loops back to the start within a few tries; many more and the browse becomes
+ * a scroll through results nobody asked to see.
+ */
+export const GIF_PAGE_SIZE = 25
+
+/**
+ * How long a GIF search waits before giving up. Longer and a dead connection
+ * leaves the editor looking frozen after a spoken command; shorter and a slow
+ * connection reports failure while the answer is still on its way.
+ */
+export const GIF_TIMEOUT_MS = 6000
