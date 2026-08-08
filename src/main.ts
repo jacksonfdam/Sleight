@@ -7,6 +7,7 @@ import { PointerAdapter } from './adapters/pointer'
 import { VoiceAdapter } from './adapters/voice'
 import { IntentBus } from './core/bus'
 import { starterDocument } from './core/document'
+import { saveDocument } from './core/persistence'
 import { Store } from './core/store'
 import { exportHtml } from './render/export'
 import { Overlay, computeGuides } from './render/overlay'
@@ -146,9 +147,15 @@ async function start(host: HTMLElement): Promise<void> {
     },
   })
 
+  let saved = store.getState().doc
   store.subscribe(state => {
     renderer.render(state)
     inspector.render(state)
+    // Referential equality means a hover or selection change costs no write.
+    if (state.doc !== saved) {
+      saved = state.doc
+      saveDocument(state.doc)
+    }
   })
   renderer.render(store.getState())
   inspector.render(store.getState())
