@@ -111,6 +111,8 @@ export class Overlay {
   private ratio = 0
   private guideColor = '#d4380d'
   private labelInk = '#ffffff'
+  private cursorColor = '#0f766e'
+  private ringColor = 'rgb(15 118 110 / 35%)'
 
   constructor(host: HTMLElement) {
     this.canvas = document.createElement('canvas')
@@ -129,6 +131,8 @@ export class Overlay {
     const styles = getComputedStyle(this.canvas)
     this.guideColor = styles.getPropertyValue('--sl-guide').trim() || this.guideColor
     this.labelInk = styles.getPropertyValue('--sl-text-inverse').trim() || this.labelInk
+    this.cursorColor = styles.getPropertyValue('--sl-cursor').trim() || this.cursorColor
+    this.ringColor = styles.getPropertyValue('--sl-cursor-ring').trim() || this.ringColor
   }
 
   /**
@@ -152,6 +156,31 @@ export class Overlay {
 
   clear(): void {
     this.context?.clearRect(0, 0, this.width, this.height)
+  }
+
+  /**
+   * The hand cursor is drawn here rather than as a DOM element so it can move
+   * every frame without touching layout, and so it can never end up in the
+   * export.
+   */
+  drawCursor(x: number, y: number, pinching: boolean): void {
+    const context = this.context
+    if (context === null) return
+
+    context.save()
+    context.fillStyle = this.cursorColor
+    context.strokeStyle = this.cursorColor
+    context.lineWidth = 2
+
+    context.beginPath()
+    context.arc(x, y, pinching ? 6 : 10, 0, Math.PI * 2)
+    if (pinching) context.fill()
+    else context.stroke()
+
+    context.beginPath()
+    context.arc(x, y, 2, 0, Math.PI * 2)
+    context.fill()
+    context.restore()
   }
 
   drawGuides(guides: readonly Guide[]): void {
