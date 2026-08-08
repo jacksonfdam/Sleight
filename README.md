@@ -182,8 +182,10 @@ Two rules keep the per-frame path cheap:
 
 ## Hand tracking
 
-Landmark inference runs in a worker, using MediaPipe's HandLandmarker compiled
-to WebAssembly. The main thread receives only `{ x, y, pinch, confidence }`;
+Landmark inference runs in a module worker, using MediaPipe's HandLandmarker
+compiled to WebAssembly. Only the ES module build of that runtime is vendored,
+because a module worker has no `importScripts` and cannot load the CommonJS build
+MediaPipe would otherwise fall back to. The main thread receives only `{ x, y, pinch, confidence }`;
 landmarks never cross the boundary. Inference on the main thread would contend
 with layout during exactly the drags it is meant to drive.
 
@@ -304,10 +306,10 @@ and no secrets are required, because all inference is on device.
 - The on-device model is small. It is used only to classify an utterance into a
   fixed command vocabulary, which is well within it. It is not asked to reason
   about layout or aesthetics, and it should not be.
-- The vendored vision assets are large: about 42 MB in `dist`, of which 7.5 MB is
-  the hand landmarker model and the rest is the WebAssembly runtime. The
-  application code itself is 15 kB gzipped, plus 45 kB gzipped for the worker.
-  Nothing under `/models/` is fetched until the camera is switched on.
+- The vendored vision assets are large: about 20 MB in `dist`, of which 7.5 MB is
+  the hand landmarker model and 12 MB is the WebAssembly runtime. The application
+  code itself is 15 kB gzipped, plus 45 kB gzipped for the worker. Nothing under
+  `/models/` is fetched until the camera is switched on.
 - Offline behaviour depends on the HTTP cache rather than a service worker.
   Editing, voice through the grammar, the inspector, export, and persistence all
   work with the network disconnected after first load. Hand tracking does too,
