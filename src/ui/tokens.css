@@ -23,6 +23,14 @@
   --sl-paper-line: #ccd5dd;
   --sl-paper-muted: #5c6b7a;
 
+  /*
+   * Used only while the camera feed is showing behind the canvas. Lower and the
+   * room reads more strongly but block text starts to lose contrast; higher and
+   * the augmented-reality effect disappears behind opaque paper.
+   */
+  --sl-paper-veil: rgb(255 255 255 / 80%);
+  --sl-camera-opacity: 0.55;
+
   --sl-border: #d3dae1;
   --sl-border-strong: #aeb9c4;
 

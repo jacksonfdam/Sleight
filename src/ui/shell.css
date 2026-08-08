@@ -84,3 +84,48 @@
     border-top: 1px solid var(--sl-border);
   }
 }
+
+/*
+ * The camera feed sits behind the document so the page being edited appears to
+ * float over the room. It is mirrored to match the cursor mapping, and it is
+ * only in the layout while the camera is on.
+ */
+.sl-camera {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}
+
+.sl-app.is-camera-live .sl-camera {
+  opacity: var(--sl-camera-opacity);
+}
+
+.sl-app.is-camera-live .sl-stage {
+  background: var(--sl-surface-sunken);
+}
+
+.sl-app.is-camera-live .sl-stage__inner {
+  z-index: 1;
+}
+
+/*
+ * Paper turns translucent so the room reads through it. The veil keeps enough
+ * contrast for block text to stay legible against a moving background.
+ */
+.sl-app.is-camera-live .sl-canvas {
+  background: var(--sl-paper-veil);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-camera {
+    transition: none;
+  }
+}

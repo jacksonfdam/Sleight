@@ -94,6 +94,14 @@ export class HandAdapter {
     return this.current
   }
 
+  /**
+   * The live camera element. It is already running for inference, so showing it
+   * behind the canvas costs one more compositor layer and no extra capture.
+   */
+  get feed(): HTMLVideoElement {
+    return this.video
+  }
+
   get running(): boolean {
     return this.status === 'running' || this.status === 'starting'
   }

@@ -110,6 +110,7 @@ async function start(host: HTMLElement): Promise<void> {
     onStatus: status => {
       toolbar.setCameraActive(hand.running)
       toolbar.setNotice(CAMERA_NOTICE[status])
+      host.classList.toggle('is-camera-live', status === 'running')
     },
   })
 
@@ -164,6 +165,12 @@ async function start(host: HTMLElement): Promise<void> {
   renderer.render(store.getState())
   inspector.render(store.getState())
   requestAnimationFrame(draw)
+
+  // The feed is already running for inference; mounting it behind the canvas
+  // makes the page look like it is floating in the room in front of you.
+  hand.feed.className = 'sl-camera'
+  hand.feed.setAttribute('aria-hidden', 'true')
+  shell.stage.prepend(hand.feed)
 
   new PointerAdapter({ surface: shell.stage, bus }).attach()
 
