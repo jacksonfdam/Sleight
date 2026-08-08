@@ -1,4 +1,4 @@
-import { listBlocks } from '../core/document'
+import { BLOCK_TYPES, listBlocks } from '../core/document'
 import type { Block, BlockType, DocumentState } from '../core/types'
 
 /**
@@ -43,7 +43,16 @@ const TYPE_WORDS: Record<string, readonly BlockType[]> = {
   image: ['image'],
   picture: ['image'],
   photo: ['image'],
+  block: BLOCK_TYPES,
+  element: BLOCK_TYPES,
 }
+
+/**
+ * Words that match any type at all. They are usable for finding a block — "the
+ * second block" is a position on the canvas — but never for creating one, since
+ * they say nothing about what to create.
+ */
+const GENERIC = /^(?:blocks?|elements?)$/
 
 const ORDINALS: Record<string, number> = {
   first: 0,
@@ -95,6 +104,7 @@ function typesFor(phrase: string): readonly BlockType[] | null {
  */
 export function blockTypeFor(phrase: string): BlockType | null {
   const bare = stripArticle(normalise(phrase)).replace(/ (?:block|element)$/, '')
+  if (GENERIC.test(bare)) return null
   return typesFor(bare)?.[0] ?? null
 }
 
