@@ -39,9 +39,7 @@ export interface HandSample {
 }
 
 export type HandResponse =
-  | HandSample
-  | { readonly type: 'ready' }
-  | { readonly type: 'error'; readonly message: string }
+  HandSample | { readonly type: 'ready' } | { readonly type: 'error'; readonly message: string }
 
 const THUMB_TIP = 4
 const INDEX_TIP = 8
