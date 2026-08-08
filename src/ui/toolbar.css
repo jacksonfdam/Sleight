@@ -1,0 +1,53 @@
+.sl-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sl-space-2);
+  padding: 6px 10px;
+  color: var(--sl-text);
+  font: inherit;
+  background: var(--sl-surface);
+  border: 1px solid var(--sl-border);
+  border-radius: var(--sl-radius-sm);
+  cursor: pointer;
+}
+
+.sl-button:hover:not(:disabled) {
+  border-color: var(--sl-border-strong);
+}
+
+.sl-button:disabled {
+  color: var(--sl-text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.sl-button[aria-pressed='true'] {
+  color: var(--sl-text-inverse);
+  background: var(--sl-accent);
+  border-color: var(--sl-accent-strong);
+}
+
+.sl-button__dot {
+  width: 8px;
+  height: 8px;
+  background: currentcolor;
+  border-radius: 50%;
+  opacity: 0.35;
+}
+
+.sl-button[aria-pressed='true'] .sl-button__dot {
+  opacity: 1;
+  animation: sl-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes sl-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-button[aria-pressed='true'] .sl-button__dot {
+    animation: none;
+  }
+}

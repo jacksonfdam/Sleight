@@ -1,11 +1,15 @@
 import './ui/tokens.css'
 import './ui/shell.css'
 import { PointerAdapter } from './adapters/pointer'
+import { VoiceAdapter } from './adapters/voice'
 import { IntentBus } from './core/bus'
 import { starterDocument } from './core/document'
 import { Store } from './core/store'
 import { Overlay, computeGuides } from './render/overlay'
 import { Renderer } from './render/renderer'
+import { Toolbar } from './ui/toolbar'
+import { parseGrammar } from './language/grammar'
+import { SpeechInput, isSpeechSupported } from './language/speech'
 
 interface Shell {
   readonly toolbar: HTMLElement
@@ -65,6 +69,32 @@ function start(host: HTMLElement): void {
   requestAnimationFrame(draw)
 
   new PointerAdapter({ surface: shell.stage, bus }).attach()
+
+  const voice = new VoiceAdapter({
+    bus,
+    parse: utterance => {
+      const state = store.getState()
+      return Promise.resolve(
+        parseGrammar(utterance, { doc: state.doc, selectedId: state.selectedId }),
+      )
+    },
+  })
+
+  const speech = new SpeechInput({
+    onUtterance: utterance => {
+      void voice.handle(utterance)
+    },
+  })
+
+  const toolbar = new Toolbar({
+    host: shell.toolbar,
+    speechSupported: isSpeechSupported(),
+    onMicToggle: active => {
+      if (active) speech.start()
+      else speech.stop()
+      toolbar.setMicActive(speech.listening)
+    },
+  })
 }
 
 const mount = document.querySelector<HTMLDivElement>('#app')
