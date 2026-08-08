@@ -43,6 +43,15 @@ describe('resolving a spoken target', () => {
     expect(idOf('the second h2')).toBe('h2-2')
   })
 
+  it('accepts a type followed by the generic noun', () => {
+    expect(idOf('the image block')).toBe('shot')
+    expect(idOf('the second heading element')).toBe('h2-1')
+  })
+
+  it('counts any type on the generic noun alone', () => {
+    expect(idOf('the third block')).toBe('shot')
+  })
+
   it('counts position in canvas order', () => {
     expect(idOf('the first block')).toBe('hero')
     expect(idOf('the last block')).toBe('h2-2')
@@ -82,6 +91,11 @@ describe('resolving a spoken block type', () => {
   it('ignores a trailing noun', () => {
     expect(blockTypeFor('a paragraph block')).toBe('paragraph')
     expect(blockTypeFor('an h2 element')).toBe('h2')
+  })
+
+  it('refuses a word that names no type on its own', () => {
+    expect(blockTypeFor('a block')).toBeNull()
+    expect(blockTypeFor('an element')).toBeNull()
   })
 
   it('returns nothing for a word outside the vocabulary', () => {
