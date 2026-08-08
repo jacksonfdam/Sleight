@@ -119,6 +119,11 @@ export class IntentBus {
     return null
   }
 
+  /** Every lock key currently held, for the context handed to the model. */
+  lockedKeys(): readonly string[] {
+    return this.locks.held()
+  }
+
   /** Number of voice intents currently waiting on a lock. */
   pendingCount(): number {
     return this.deferred.length
