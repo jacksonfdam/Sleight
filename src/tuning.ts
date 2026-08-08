@@ -43,3 +43,17 @@ export const VOICE_FONT_STEP_PX = 4
  * inference is felt as the editor ignoring what was said.
  */
 export const MODEL_TIMEOUT_MS = 1200
+
+/**
+ * One Euro filter constants for the tracked hand point.
+ *
+ * `minCutoff` sets the smoothing applied when the hand is still: lower is
+ * steadier but adds lag to slow movements. `beta` sets how quickly smoothing is
+ * given up as the hand speeds up: higher tracks fast reaches closely but lets
+ * jitter through, lower feels like dragging through treacle. `dCutoff` smooths
+ * the speed estimate itself; raising it makes the filter react to speed changes
+ * sooner at the cost of reacting to noise as though it were movement.
+ */
+export const ONE_EURO_MIN_CUTOFF = 1
+export const ONE_EURO_BETA = 0.007
+export const ONE_EURO_D_CUTOFF = 1
