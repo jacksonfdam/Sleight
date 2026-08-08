@@ -45,6 +45,41 @@ smaller`. The property is read from the end of the phrase and whatever precedes
 it is the target, so `text colour` stays a property while `the text block's
 colour` names a block.
 
+## Rotation
+
+The verb can be `rotate`, `tilt`, `spin`, or `turn`. `turn` also belongs to the
+property grammar, so it only counts as a rotation when the phrase carries a
+number or a rotation word — `turn the colour to red` is still a colour change.
+
+| Say                                | Effect                     |
+| ---------------------------------- | -------------------------- |
+| `rotate it`                        | Turns by 15 degrees        |
+| `rotate it 30 degrees`             | Turns by that many degrees |
+| `rotate the image to 90 degrees`   | Turns to that angle        |
+| `rotate the image left 45 degrees` | Turns anticlockwise        |
+| `straighten it` / `unrotate it`    | Returns the block to level |
+
+The angle wraps rather than stopping: nudging past 360 carries on from zero, and
+a negative angle reads as its positive equivalent.
+
+## Text styles
+
+Bold, italic, and underline apply to the whole block. They combine freely, and
+each is switched independently of the others.
+
+| Say                                   | Effect                 |
+| ------------------------------------- | ---------------------- |
+| `bold it` / `make it bold`            | Switches bold on       |
+| `italicise it` / `make it italic`     | Switches italic on     |
+| `underline it` / `make it underlined` | Switches underline on  |
+| `unbold it` / `make it not bold`      | Switches bold off      |
+| `remove the underline`                | Switches underline off |
+| `remove the italics from the intro`   | Switches it off there  |
+
+`remove the underline` is checked before the delete rule, so a style word after
+`remove` is always about the style. A block would have to be labelled Underline
+for that to be ambiguous, and even then the style wins.
+
 ## Alignment
 
 | Say                             | Effect                  |
@@ -116,6 +151,30 @@ cascades from the top corner.
 `block` and `element` name no type on their own, so `add a block` is refused
 rather than guessed at, while `add a heading block` is the same as
 `add a heading`.
+
+## Filling an image with a GIF
+
+The only commands that reach a network service. They need `VITE_GIPHY_KEY` to be
+set; without it the status bar says so and nothing changes.
+
+| Say                          | Effect                                    |
+| ---------------------------- | ----------------------------------------- |
+| `find a gif of a cat`        | Searches and shows the first result       |
+| `search gifs for explosions` | Same                                      |
+| `a gif of heavy rain`        | Same, without a verb                      |
+| `change it` / `another one`  | The next result for the same search       |
+| `next gif` / `try another`   | Same                                      |
+| `randomize` / `surprise me`  | Any other result for the same search      |
+| `keep it` / `that one`       | Ends the browse and keeps what is showing |
+
+The GIF lands in the selected block when that block is an image, and in the
+first image block on the canvas otherwise. Each change is its own undo step, so
+`undo` walks back through the results one at a time.
+
+`change it` and the other browse words only mean anything while a search is
+open. Before a search, and after `keep it`, they fall back to the ordinary
+grammar — which is what stops `change the colour to red` being read as a request
+for a different GIF.
 
 ## History
 

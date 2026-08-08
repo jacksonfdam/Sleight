@@ -61,9 +61,25 @@ bar. There is no capability error to interpret.
 | Grammar | Speech recognition, but no model | The documented grammar handles a fixed set of phrasings          |
 | Manual  | No speech recognition            | Voice controls are hidden; mouse and hand editing are unaffected |
 
-Every tier works with the network disconnected after first load. Speech
-recognition itself may use a network service depending on the browser; nothing
-in Sleight does.
+Every tier works with the network disconnected after first load, with one
+exception: GIF search calls the Giphy API. Everything else — editing, the
+grammar, the model, hand tracking, export, persistence — runs on the machine.
+Speech recognition itself may use a network service depending on the browser.
+
+## GIF search
+
+An image block can be filled from a spoken query, and the result browsed until
+one is worth keeping. This is the only feature that leaves the machine, and it
+is the only one that needs a key:
+
+```
+echo 'VITE_GIPHY_KEY=your-key-here' > .env.local
+```
+
+Without a key the feature reports itself as unconfigured in the status bar and
+changes nothing; the rest of the editor is unaffected. `.env.local` is ignored
+by git, so no key is ever committed. Requests carry the search term and nothing
+else — no document content and no identifier.
 
 ## Architecture
 
@@ -73,6 +89,7 @@ src/
   adapters/    pointer, hand, and voice input translated into intents
   vision/      hand landmark inference in a worker, one euro filtering
   language/    speech capture, deterministic grammar, on-device model parsing
+  media/       gif search, the one service outside the machine
   render/      dom renderer, overlay canvas, standalone html export
   ui/          toolbar, inspector, design tokens
 ```
@@ -293,6 +310,15 @@ microphone does not edit the document.
 | `delete the image` / `get rid of the last block`  | Deletes the block that is named            |
 | `make the second heading wider`                   | Acts on a named block, not the selection   |
 | `change the image's width to 300`                 | A possessive names the block too           |
+| `rotate it 30 degrees`                            | Turns by a step; `to 90` turns to an angle |
+| `rotate the image left 45 degrees`                | Turns the other way                        |
+| `straighten it`                                   | Returns the block to level                 |
+| `bold it` / `make it italic` / `underline it`     | Switches a text style on                   |
+| `unbold it` / `remove the underline`              | Switches one off                           |
+| `find a gif of a cat`                             | Fills the image block from a search        |
+| `change it` / `another one`                       | The next result for the same search        |
+| `randomize` / `surprise me`                       | Any other result for the same search       |
+| `keep it`                                         | Ends the browse and keeps what is showing  |
 | `undo` / `redo`                                   | Moves through history                      |
 | `change the text to Welcome aboard`               | Replaces the block's text                  |
 | `set the source to https://example.com/photo.jpg` | Points an image block at a URL             |
@@ -346,8 +372,9 @@ from its own origin.
 
 Import the repository on Vercel. The included `vercel.json` sets the build
 command to `npm run build` and the output directory to `dist`, and marks
-everything under `/models/` as immutable for a year. No environment variables
-and no secrets are required, because all inference is on device.
+everything under `/models/` as immutable for a year. All inference is on device,
+so the only environment variable is `VITE_GIPHY_KEY`, and it is optional: without
+it every feature except GIF search behaves identically.
 
 ## Known limitations
 
@@ -356,6 +383,8 @@ and no secrets are required, because all inference is on device.
   concept and is the first thing that would change.
 - Nine block types: `section`, `hero`, `h1` to `h4`, `paragraph`, `text`, and
   `image`. Headings and paragraphs carry their real tag through to the export.
+- Bold, italic, and underline apply to a whole block, not to a run of words
+  inside it. There is no rich text model; a block has one set of styles.
 - Blocks are added from the toolbar or by voice, and deleted by voice only.
   There is no delete control in the interface, so a session without a working
   microphone can add a block but not remove it except by undoing.
@@ -364,9 +393,10 @@ and no secrets are required, because all inference is on device.
   the page, and has to be dragged somewhere useful.
 - No collaborative editing. The lock table resolves contention between input
   sources on one machine, not between people.
-- No rotation. The two-hand gesture scales and pans but does not rotate, because
-  there is no rotation property in the document model — adding one means touching
-  the property union, the reducer, the renderer, and the export together.
+- The two-hand gesture scales and pans but does not rotate. Blocks now carry a
+  rotation, set from the inspector or by voice, but no gesture turns one: that
+  needs a third relationship read from the pair of hands, on top of the span and
+  the midpoint already in use.
 - No responsive breakpoints. The canvas is a single fixed-size surface and the
   export is absolutely positioned at that size.
 - Hand tracking degrades in low light and near the frame edges. The usable middle
@@ -379,6 +409,15 @@ and no secrets are required, because all inference is on device.
   the hand landmarker model and 12 MB is the WebAssembly runtime. The application
   code itself is 15 kB gzipped, plus 45 kB gzipped for the worker. Nothing under
   `/models/` is fetched until the camera is switched on.
+- GIF search is the one feature that depends on a third party. It needs a Giphy
+  key, it needs a connection, and both of those are things the rest of the
+  application deliberately does without. Nothing else regressed to accommodate
+  it: the library reports an outcome instead of throwing, and every failure
+  leaves the document untouched.
+- A rotated block is still resized along screen axes, not its own. Dragging a
+  handle on a block turned 45 degrees moves the edge in the direction the mouse
+  moved rather than the direction the edge faces. Snap guides measure the
+  unrotated box for the same reason.
 - Offline behaviour depends on the HTTP cache rather than a service worker.
   Editing, voice through the grammar, the inspector, export, and persistence all
   work with the network disconnected after first load. Hand tracking does too,
