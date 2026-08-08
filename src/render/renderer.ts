@@ -17,6 +17,11 @@ export function blockIdAt(node: EventTarget | Node | null): string | null {
   return owner?.getAttribute(BLOCK_ATTR) ?? null
 }
 
+/** The editable text node inside a block, when the block type has one. */
+export function textNodeFor(el: Element): HTMLElement | null {
+  return el.querySelector<HTMLElement>(`.${TEXT_CLASS}`)
+}
+
 export const HANDLE_ATTR = 'data-handle'
 
 export const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const
@@ -92,7 +97,10 @@ function applyProps(el: HTMLElement, block: Block): void {
   }
 
   const span = el.querySelector<HTMLElement>(`.${TEXT_CLASS}`)
-  if (span && span.textContent !== props.text) span.textContent = props.text
+  // Never rewrite the node someone is typing into.
+  if (span && !span.isContentEditable && span.textContent !== props.text) {
+    span.textContent = props.text
+  }
 }
 
 /** The canvas element is the root block; it is laid out by the shell, not by props. */

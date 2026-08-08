@@ -1,7 +1,9 @@
 import type { IntentBus } from '../core/bus'
 import { transactionId } from '../core/bus'
 import type { HandleName } from '../render/renderer'
-import { blockIdAt, handleAt } from '../render/renderer'
+import { blockIdAt, handleAt, textNodeFor } from '../render/renderer'
+
+const EDITABLE_TYPES = new Set(['text', 'hero'])
 
 /** Which edges a handle drives, as multipliers on the pointer delta. */
 const HANDLE_AXES: Record<HandleName, { readonly ew: -1 | 0 | 1; readonly ns: -1 | 0 | 1 }> = {
@@ -46,10 +48,47 @@ export class PointerAdapter {
 
   attach(): () => void {
     this.surface.addEventListener('pointerdown', this.onDown)
+    this.surface.addEventListener('dblclick', this.onDoubleClick)
     return () => {
       this.surface.removeEventListener('pointerdown', this.onDown)
+      this.surface.removeEventListener('dblclick', this.onDoubleClick)
       this.stopTracking()
     }
+  }
+
+  /**
+   * Text is edited in the block itself rather than only in the inspector, so the
+   * document being edited and the document being read are the same thing.
+   */
+  private readonly onDoubleClick = (event: MouseEvent): void => {
+    const id = blockIdAt(event.target)
+    const element = event.target instanceof Element ? event.target.closest('[data-block-id]') : null
+    if (id === null || element === null) return
+    if (!EDITABLE_TYPES.has(element.getAttribute('data-block-type') ?? '')) return
+
+    const node = textNodeFor(element)
+    if (node === null) return
+
+    node.contentEditable = 'true'
+    node.spellcheck = false
+    node.focus()
+
+    const commit = (): void => {
+      node.contentEditable = 'false'
+      node.removeEventListener('blur', commit)
+      node.removeEventListener('keydown', onKey)
+      this.bus.emit({ op: 'set', id, path: 'text', value: node.textContent ?? '' }, 'pointer')
+    }
+    const onKey = (keyEvent: KeyboardEvent): void => {
+      if (keyEvent.key === 'Enter' && !keyEvent.shiftKey) {
+        keyEvent.preventDefault()
+        node.blur()
+      }
+      if (keyEvent.key === 'Escape') node.blur()
+    }
+
+    node.addEventListener('blur', commit)
+    node.addEventListener('keydown', onKey)
   }
 
   private readonly onDown = (event: PointerEvent): void => {
@@ -85,6 +124,8 @@ export class PointerAdapter {
 
   private handleDown(event: PointerEvent): void {
     if (event.button !== 0) return
+    // A drag started inside a text node being edited would fight the caret.
+    if (event.target instanceof Element && event.target.closest('[contenteditable="true"]')) return
     const id = blockIdAt(event.target)
     const target = id === null || id === 'root' ? null : id
     const handle = handleAt(event.target)
