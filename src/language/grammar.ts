@@ -1,5 +1,14 @@
 import { insertCommand, isAlign } from '../core/document'
-import type { Align, Command, DocumentState, FlagPath, NumericPath, PropPath } from '../core/types'
+import type {
+  Align,
+  CenterAxis,
+  Command,
+  DocumentState,
+  FlagPath,
+  NumericPath,
+  PropPath,
+  ScaleTarget,
+} from '../core/types'
 import { VOICE_FONT_STEP_PX, VOICE_ROTATE_STEP_DEG, VOICE_SIZE_STEP_PX } from '../tuning'
 import { blockTypeFor, resolveTarget } from './target'
 
@@ -200,6 +209,91 @@ const FLAG_VERB_RE = new RegExp(
   `^(?<verb>${Object.keys(FLAG_VERBS).join('|')})(?: (?<target>.+))?$`,
 )
 
+/** Axis words. Their absence is what keeps `centre it` a text alignment. */
+const AXIS_X = /\b(?:horizontal|horizontally|across|left to right)\b/
+const AXIS_Y = /\b(?:vertical|vertically|top to bottom)\b/
+const AXIS_BOTH = /\b(?:canvas|page|screen|middle|centre|center|both)\b/
+
+/** Everything a centring phrase can carry that does not name a block. */
+const CENTER_NOISE =
+  /\b(?:horizontal|horizontally|vertical|vertically|across|left|right|top|bottom|to|on|in|of|the|canvas|page|screen|middle|both|axis)\b/g
+
+/**
+ * Centring a block within the canvas, which is a position and not a text
+ * alignment. The two share a verb, so an axis word is required: without one the
+ * phrase falls through to `align`, where `centre it` has always meant the text.
+ */
+function centerCommand(rest: string, context: ParseContext): Command | null {
+  const wantsX = AXIS_X.test(rest)
+  const wantsY = AXIS_Y.test(rest)
+  const wantsBoth = AXIS_BOTH.test(rest)
+  if (!wantsX && !wantsY && !wantsBoth) return null
+
+  const id = targetFor(rest.replace(CENTER_NOISE, ' '), context)
+  if (id === null) return null
+
+  const axis: CenterAxis = wantsX === wantsY ? 'both' : wantsX ? 'x' : 'y'
+  return { op: 'center', id, axis }
+}
+
+/** Words that name a whole multiple of the current size. */
+const FACTORS: Record<string, number> = {
+  double: 2,
+  doubled: 2,
+  twice: 2,
+  triple: 3,
+  tripled: 3,
+  treble: 3,
+  quadruple: 4,
+  halve: 0.5,
+  half: 0.5,
+  quarter: 0.25,
+}
+
+/** A phrase that scales the type rather than the box. */
+const FONT_SUBJECT = /\b(?:font|text|type)\b/
+
+/**
+ * Verbs that make a percentage step downwards. Anything else steps up, so only
+ * the shrinking half needs listing.
+ */
+const LESS = /\b(?:reduce|decrease|shrink|lower|cut|down|smaller)\b/
+
+/**
+ * A multiplicative resize: a named multiple, or a percentage that is either a
+ * step (`by 50 percent`) or a destination (`to 150 percent`).
+ */
+function scaleCommand(text: string, context: ParseContext): Command | null {
+  const of: ScaleTarget = FONT_SUBJECT.test(text) ? 'font' : 'box'
+
+  const named =
+    /\b(?<word>double|doubled|twice|triple|tripled|treble|quadruple|halve|half|quarter)\b/.exec(
+      text,
+    )
+  const percent = /(?<value>\d+(?:\.\d+)?)\s*(?:%|percent|per cent)/.exec(text)
+  if (named === null && percent === null) return null
+
+  let factor: number
+  if (percent?.groups?.['value'] !== undefined) {
+    const share = Number.parseFloat(percent.groups['value']) / 100
+    if (!Number.isFinite(share) || share <= 0) return null
+    // `by` is a step, `to` is a destination. A bare percentage is a destination,
+    // because "make it 150 percent" reads as a size rather than as an increment.
+    const step = /\bby\b/.test(text)
+    factor = step ? (LESS.test(text) ? 1 - share : 1 + share) : share
+  } else {
+    factor = FACTORS[named?.groups?.['word'] ?? ''] ?? 0
+  }
+  if (factor <= 0) return null
+
+  const id = targetFor(text.replace(SCALE_NOISE, ' '), context)
+  return id === null ? null : { op: 'scale', id, factor, of }
+}
+
+/** Everything a scale phrase carries that does not name a block. */
+const SCALE_NOISE =
+  /\b(?:make|set|scale|resize|double|doubled|twice|triple|tripled|treble|quadruple|halve|half|quarter|increase|decrease|reduce|shrink|lower|raise|grow|cut|by|to|of|up|down|the|its|size|sizes|bigger|larger|smaller|percent|per cent|font|text|type)\b|\d+(?:\.\d+)?|%/g
+
 /** Words that mean the turn goes the other way. */
 const ANTICLOCKWISE = /\b(?:left|anticlockwise|counterclockwise|counter|back|backwards)\b/
 
@@ -349,10 +443,28 @@ export function parseGrammar(utterance: string, context: ParseContext): Command 
     if (value !== null && id !== null) return { op: 'set', id, path: 'align', value }
   }
 
+  // Canvas centring is checked before text centring, and only matches when an
+  // axis is named. Without that, `centre it` would stop meaning the text.
+  const place = /^(?:cent(?:er|re)|position|put)(?: (?<rest>.+))?$/.exec(text)
+  const placeRest = place?.groups?.['rest']
+  if (placeRest !== undefined) {
+    const cmd = centerCommand(placeRest, context)
+    if (cmd !== null) return cmd
+  }
+
   const centre = /^cent(?:er|re)(?: (?<target>.+))?$/.exec(text)
   if (centre !== null) {
     const id = targetFor(centre.groups?.['target'] ?? '', context)
     if (id !== null) return { op: 'set', id, path: 'align', value: 'center' }
+  }
+
+  const resize =
+    /^(?:make|set|scale|resize|double|triple|treble|quadruple|halve|increase|decrease|reduce|shrink|grow)\b/.test(
+      text,
+    )
+  if (resize) {
+    const cmd = scaleCommand(text, context)
+    if (cmd !== null) return cmd
   }
 
   const straighten = /^(?:straighten|unrotate)(?: (?<target>.+))?$/.exec(text)
