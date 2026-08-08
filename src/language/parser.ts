@@ -155,6 +155,22 @@ export function validateCommand(value: unknown, context: ParseContext): Command 
       return isBlockType(type) ? insertCommand(context.doc, type) : NOOP
     }
 
+    case 'center': {
+      const id = targetId(record, context)
+      const axis = record['axis']
+      if (id === null) return NOOP
+      return axis === 'x' || axis === 'y' || axis === 'both' ? { op: 'center', id, axis } : NOOP
+    }
+
+    case 'scale': {
+      const id = targetId(record, context)
+      const factor = record['factor']
+      const of = record['of']
+      if (id === null || typeof factor !== 'number' || !Number.isFinite(factor)) return NOOP
+      if (factor <= 0) return NOOP
+      return of === 'font' || of === 'box' ? { op: 'scale', id, factor, of } : NOOP
+    }
+
     default:
       return NOOP
   }

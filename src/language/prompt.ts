@@ -25,7 +25,9 @@ const LANGUAGE_EXPECTATIONS = {
  * a no-op rather than an attempt.
  */
 export const SYSTEM = `You convert an editing utterance into exactly one JSON command.
-Allowed ops: set, nudge, insert, select, move, remove, undo, redo, noop.
+Allowed ops: set, nudge, insert, select, move, remove, center, scale, undo, redo, noop.
+To centre a block on the canvas, output {"op":"center","id":"<id>","axis":"x"|"y"|"both"}.
+To resize by a multiple, output {"op":"scale","id":"<id>","factor":<number>,"of":"box"|"font"}.
 Allowed paths: color, fontSize, w, h, x, y, align, src, text.
 Block types: section, hero, h1, h2, h3, h4, paragraph, text, image.
 To add a block, output {"op":"insert","type":"<block type>"} and nothing else.
